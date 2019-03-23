@@ -76,6 +76,7 @@ int measureThread() {
 	this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
 	continue;
       }
+      //cerr << "get " << cacheip + currentID << "\n";
       /* set URL to get */ 
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
       //fetch URL
