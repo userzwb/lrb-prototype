@@ -133,11 +133,12 @@ func LoadGenerator(trace string) {
 }
 
 func throughput() {
-	path := "/home/wenqim/result/clientThroughput"
+	path := "clientThroughput"
 	_ = os.Remove(path)
 	_, err := os.Create(path)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
 	Check(err)
+	fmt.Println("opened file",path)
 	defer f.Close()
 	for{
 		select{
