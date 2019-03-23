@@ -43,7 +43,7 @@ int main() {
 
     Pistache::Address addr(Pistache::Ipv4::any(), Pistache::Port(9080));
     auto opts = Pistache::Http::Endpoint::options()
-        .threads(8);
+        .threads(16);
 
     Http::Endpoint server(addr);
     server.init(opts);
