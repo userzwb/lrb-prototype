@@ -18,7 +18,7 @@ sudo chown -R dberger /opt/ts
 # delete default config dir (or backup..)
 sudo rm -rf /opt/ts/etc/trafficserver
 # link this repo's config dir
-ln -s trafficserver /opt/ts/etc/trafficserver
+ln -s ~/webtracereplay/tsconfig /opt/ts/etc/trafficserver
 
 /opt/ts/bin/trafficserver start
 /opt/ts/bin/traffic_ctl config reload
