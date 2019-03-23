@@ -1,3 +1,10 @@
+#### read the README.md first
+#### basically the setup is as follows
+
+# |    client   |        ----         |      cache        |       ------           |                  origin                |
+# |  client.cpp |  http on port 6000  |   ATS (RAM/NVME)  |    http on port 7000   |   nginx - fcgi on port 9000 server.cpp |
+
+
 #### on cache
 
 sudo apt install libhwloc-dev libhwloc5 libunwind8 libunwind8-dev
