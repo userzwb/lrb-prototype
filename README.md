@@ -91,6 +91,7 @@ Start these one after another.
 ### throughput.log
 
 | #reqs | #bytes | time since last print (usually 1000ms)|
+| --- | ---- | ----|
 
 
 ## Contributors are welcome
