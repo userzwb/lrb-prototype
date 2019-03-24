@@ -88,6 +88,10 @@ Start these one after another.
      client/client client.tr 20 127.0.0.1:7000 throughput.log histogram.log
 
 
+### throughput.log
+
+| #reqs | #bytes | time since last print (usually 1000ms)|
+
 
 ## Contributors are welcome
 
