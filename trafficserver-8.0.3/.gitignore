@@ -170,3 +170,6 @@ RELEASE
 
 # autest
 tests/env-test/
+.idea
+cmake-build-debug
+cmake-build-release
