@@ -30,3 +30,8 @@
 
 # Jetbrain IDE
 .idea
+
+#
+delog.log
+throughput.log
+

@@ -16,6 +16,8 @@ git clone https://git-wip-us.apache.org/repos/asf/trafficserver.git
 cd trafficserver
 autoreconf -if
 ./configure --prefix=/opt/ts --disable-tests --with-architecture=skylake
+# build as debug
+./configure --prefix=/opt/ts --enable-debug
 make
 sudo make install
 
@@ -30,7 +32,11 @@ ln -s ~/webtracereplay/tsconfig /opt/ts/etc/trafficserver
 /opt/ts/bin/trafficserver start
 /opt/ts/bin/traffic_ctl config reload
 
+# see the log
+tail -f /opt/ts/var/log/trafficserver/small.log
 
+# after experiment, close traffic server
+ /opt/ts/bin/traffic_ctl server stop
 
 #### on origin
 
@@ -51,6 +57,9 @@ sudo apt install nginx
 
 # config path should be an absolute path!!
 sudo nginx -c ~/webtracereplay/server/nginx.conf
+
+# after experiment close ginx
+sudo nginx -s stop
 
 
 #### on client
