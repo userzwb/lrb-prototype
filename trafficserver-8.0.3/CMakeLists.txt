@@ -110,6 +110,11 @@ add_executable(traffic_server
         src/traffic_server/traffic_server.cc
 )
 
+#message(${CMAKE_CURRENT_SOURCE_DIR})
+add_custom_target(_traffic_server
+        COMMAND make
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(ats
         src/traffic_via/traffic_via.cc
         src/traffic_wccp/wccp_client.cc
