@@ -22,9 +22,6 @@ make
 # for debug, you can jump this step
 sudo make install
 
-# set TS_ROOT VARIABLE such that the custom config can be found
-# I do this in my IDE: TS_ROOT=/home/zhenyus/webtracereplay/ts
-
 # decide on a username (mine is dberger)
 sudo chown -R dberger /opt/ts
 
