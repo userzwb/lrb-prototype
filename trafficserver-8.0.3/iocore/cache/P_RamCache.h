@@ -24,7 +24,7 @@
 #pragma once
 
 #include "I_Cache.h"
-
+#include <vector>
 // Generic Ram Cache interface
 
 struct RamCache {
@@ -42,3 +42,23 @@ struct RamCache {
 
 RamCache *new_RamCacheLRU();
 RamCache *new_RamCacheCLFUS();
+
+class VDiskCache {
+public:
+    VDiskCache() {
+
+    }
+    void append(const CacheKey * key) {
+      _key_space.emplace_back(*key);
+    }
+    bool lookup(const CacheKey * key) {
+        for (auto &k : _key_space) {
+            if (k == *key)
+                return true;
+        }
+        return false;
+    }
+
+private:
+    std::vector<CacheKey> _key_space;
+};

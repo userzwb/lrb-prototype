@@ -113,6 +113,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     bool flag = !lock.is_locked();
+    bool vdisk_lookup_flag = vol->v_disk_cache->lookup(key);
     if (!flag) {
       od = vol->open_read(key);
       if (od) {
