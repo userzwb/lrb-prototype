@@ -3246,6 +3246,10 @@ Action *
 CacheProcessor::open_read(Continuation *cont, const HttpCacheKey *key, CacheHTTPHdr *request, OverridableHttpConfigParams *params,
                           time_t pin_in_cache, CacheFragType type)
 {
+    //zhenyus: this is the entry points. In single thread test all requests pass here. In
+    // printing test 99.9% traffic goes here
+//    static int counter = 0;
+//    ++counter;
   return caches[type]->open_read(cont, &key->hash, request, params, type, key->hostname, key->hostlen);
 }
 

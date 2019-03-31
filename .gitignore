@@ -32,7 +32,7 @@
 .idea
 
 #
-delog.log
+latency.log
 throughput.log
 
 cmake-build-debug
