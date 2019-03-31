@@ -3261,6 +3261,7 @@ Action *
 CacheProcessor::open_write(Continuation *cont, int expected_size, const HttpCacheKey *key, CacheHTTPHdr *request,
                            CacheHTTPInfo *old_info, time_t pin_in_cache, CacheFragType type)
 {
+    //zhenyu: entry point of write back.
   return caches[type]->open_write(cont, &key->hash, old_info, pin_in_cache, nullptr /* key1 */, type, key->hostname, key->hostlen);
 }
 

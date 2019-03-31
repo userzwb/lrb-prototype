@@ -110,10 +110,20 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 
   {
       //zhenyus: does this lock the volume?
+      //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
-//    bool flag = false;
-//    if ()
-    if (!lock.is_locked() || (od = vol->open_read(key)) || dir_probe(key, vol, &result, &last_collision)) {
+    bool flag = !lock.is_locked();
+    if (!flag) {
+      od = vol->open_read(key);
+      if (od) {
+        flag = true;
+      } else {
+      //zhenyu: here get the Dir
+        flag = dir_probe(key, vol, &result, &last_collision);
+      }
+    }
+
+    if (flag) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;
       c->vol                                  = vol;

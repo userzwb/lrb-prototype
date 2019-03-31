@@ -39,6 +39,9 @@
 namespace ats
 {
 /// Crypto hash output.
+/*
+ * Zhenyu: 128 bit md5 hash. Each uintx store the same number
+ * */
 union CryptoHash {
   uint64_t b[CRYPTO_HASH_SIZE / sizeof(uint64_t)]; // Legacy placeholder
   uint64_t u64[CRYPTO_HASH_SIZE / sizeof(uint64_t)];
