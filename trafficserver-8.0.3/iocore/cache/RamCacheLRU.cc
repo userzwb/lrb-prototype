@@ -121,6 +121,9 @@ RamCacheLRU::init(int64_t abytes, Vol *avol)
 int
 RamCacheLRU::get(CryptoHash *key, Ptr<IOBufferData> *ret_data, uint32_t auxkey1, uint32_t auxkey2)
 {
+  //there is going to be a little more requests in this function
+//    static int counter = 0;
+//    ++counter;
   if (!max_bytes) {
     return 0;
   }

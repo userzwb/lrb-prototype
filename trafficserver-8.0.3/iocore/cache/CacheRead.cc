@@ -109,7 +109,10 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
   CacheVC *c        = nullptr;
 
   {
+      //zhenyus: does this lock the volume?
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
+//    bool flag = false;
+//    if ()
     if (!lock.is_locked() || (od = vol->open_read(key)) || dir_probe(key, vol, &result, &last_collision)) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;

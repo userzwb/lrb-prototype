@@ -2399,6 +2399,9 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
   int64_t o           = dir_offset(&dir);
   int ram_hit_state   = vol->ram_cache->get(read_key, &buf, (uint32_t)(o >> 32), (uint32_t)o);
   f.compressed_in_ram = (ram_hit_state > RAM_HIT_COMPRESS_NONE) ? 1 : 0;
+  /* zhenyu: if 1 object read, and put to ram, and read again, it is in LmemHit instead of LramHit.
+  if 2 objects requests, will be LramHit
+  */
   if (ram_hit_state >= RAM_HIT_COMPRESS_NONE) {
     goto LramHit;
   }
