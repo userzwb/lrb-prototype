@@ -138,6 +138,22 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       c->params    = params;
       c->od        = od;
     }
+
+    //mock: always true
+    vdisk_lookup_flag = true;
+
+    if (vdisk_lookup_flag) {
+      c            = new_CacheVC(cont);
+      c->first_key = c->key = c->earliest_key = *key;
+      c->vol                                  = vol;
+      c->vio.op                               = VIO::READ;
+      c->base_stat                            = cache_read_active_stat;
+      CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
+      c->request.copy_shallow(request);
+      c->frag_type = CACHE_FRAG_TYPE_HTTP;
+      c->params    = params;
+      c->od        = nullptr;
+    }
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
