@@ -100,6 +100,11 @@ public:
             //fresh insert
             key_map.insert({key, meta_holder.size()});
             meta_holder.emplace_back(key, size);
+        } else {
+            auto & pos = it->second;
+            auto & meta = meta_holder[pos];
+            assert(meta._size == size);
+            assert(meta._key == key);
         }
     }
 
