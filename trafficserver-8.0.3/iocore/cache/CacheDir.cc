@@ -602,8 +602,6 @@ Lagain:
 int
 dir_insert(const CacheKey *key, Vol *d, Dir *to_part)
 {
-  //zhenyu: notice the VDisk that disk write is finished
-  d->gdbt_cache->fetch(key);
   ink_assert(d->mutex->thread_holding == this_ethread());
   int s  = key->slice32(0) % d->segments, l;
   int bi = key->slice32(1) % d->buckets;

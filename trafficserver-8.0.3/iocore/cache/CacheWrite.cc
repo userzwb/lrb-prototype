@@ -1171,6 +1171,8 @@ CacheVC::openWriteCloseHeadDone(int event, Event *e)
     if (!io.ok()) {
       goto Lclose;
     }
+    //zhenyu: notice the VDisk that disk write is finished
+    vol->gdbt_cache->fetch(&first_key);
     ink_assert(f.use_first_key);
     if (!od->dont_update_directory) {
       if (dir_is_empty(&od->first_dir)) {

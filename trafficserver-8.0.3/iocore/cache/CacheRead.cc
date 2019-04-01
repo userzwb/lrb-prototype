@@ -115,7 +115,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     bool flag = !lock.is_locked();
     bool vdisk_lookup_flag = vol->gdbt_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
-    if (vdisk_lookup_flag && !flag) {
+    if (!flag) {
       od = vol->open_read(key);
       if (od) {
         flag = true;

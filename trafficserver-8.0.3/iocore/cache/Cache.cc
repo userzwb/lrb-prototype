@@ -2413,6 +2413,9 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
     buf = vol->first_fragment_data;
     goto LmemHit;
   }
+  /*
+   * zhenyu: to test single random read
+   */
   // see if its in the aggregation buffer
   if (dir_agg_buf_valid(vol, &dir)) {
     int agg_offset = vol->vol_offset(&dir) - vol->header->write_pos;
