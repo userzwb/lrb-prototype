@@ -1375,6 +1375,8 @@ target_fragment_size()
 int
 CacheVC::openWriteMain(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
 {
+    //zhenyu: update size
+  vol->gdbt_cache->admit(&first_key, vio.nbytes);
   cancel_trigger();
   int called_user = 0;
   ink_assert(!is_io_in_progress());

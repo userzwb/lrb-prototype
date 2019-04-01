@@ -917,7 +917,7 @@ CacheProcessor::cacheInitialized()
       // new ram_caches, with algorithm from the config
       for (i = 0; i < gnvol; i++) {
         //zhenyu: init VDiskCache
-        gvol[i]->v_disk_cache = new VDiskCache();
+        gvol[i]->gdbt_cache = new GDBTCache();
         switch (cache_config_ram_cache_algorithm) {
         default:
         case RAM_CACHE_ALGORITHM_CLFUS:
