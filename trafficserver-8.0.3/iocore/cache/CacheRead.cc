@@ -114,7 +114,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     bool flag = !lock.is_locked();
     bool vdisk_lookup_flag = vol->gdbt_cache->lookup(key);
-    if (!flag) {
+    //zhenyu: need to in vdisk in order to be probe
+    if (vdisk_lookup_flag && !flag) {
       od = vol->open_read(key);
       if (od) {
         flag = true;
@@ -124,7 +125,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       }
     }
 
-    if (flag) {
+    //create the read only when key in virtual disk
+    if (vdisk_lookup_flag && flag) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;
       c->vol                                  = vol;
@@ -141,7 +143,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       CONT_SCHED_LOCK_RETRY(c);
       return &c->_action;
     }
-    if (!c) {
+    if (!vdisk_lookup_flag || !c) {
+      //always miss if the object not in virtual disk
       goto Lmiss;
     }
     if (c->od) {
