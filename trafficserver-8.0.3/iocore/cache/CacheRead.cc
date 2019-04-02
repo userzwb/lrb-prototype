@@ -1202,15 +1202,16 @@ CacheVC::openReadStartHead(int event, Event *e)
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();
-      if (key == doc->key) { // is this my data?
-        f.single_fragment = doc->single_fragment();
-        ink_assert(f.single_fragment); // otherwise need to read earliest
-        ink_assert(doc->hlen);
-        doc_pos = doc->prefix_len();
-        next_CacheKey(&key, &doc->key);
-      } else {
-        f.single_fragment = false;
-      }
+//      if (key == doc->key) { // is this my data?
+      //zhenyu: assume always your data
+      f.single_fragment = doc->single_fragment();
+      ink_assert(f.single_fragment); // otherwise need to read earliest
+      ink_assert(doc->hlen);
+      doc_pos = doc->prefix_len();
+      next_CacheKey(&key, &doc->key);
+//      } else {
+//        f.single_fragment = false;
+//      }
     } else {
       next_CacheKey(&key, &doc->key);
       f.single_fragment = doc->single_fragment();
