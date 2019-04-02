@@ -1198,7 +1198,7 @@ CacheVC::openReadStartHead(int event, Event *e)
         }
         goto Ldone;
       }
-
+      alternate_tmp->m_alt->m_object_size[0] = 1700;
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();

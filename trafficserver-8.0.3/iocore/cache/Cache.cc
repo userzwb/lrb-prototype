@@ -2273,8 +2273,8 @@ CacheVC::handleReadDone(int event, Event *e)
     //
     //zhenyu: of course the thing retrieved is invalid
     doc->magic = DOC_MAGIC;
-    doc->len = 3986;
-    doc->total_len = 1594;
+    doc->len = 4092;//3986
+    doc->total_len = 1700;//1594
     doc->first_key = first_key;
     doc->key = key;
     doc->hlen = 2320;
