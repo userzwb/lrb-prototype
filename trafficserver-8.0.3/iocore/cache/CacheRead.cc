@@ -124,6 +124,47 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         flag = dir_probe(key, vol, &result, &last_collision);
       }
     }
+//    uint64_t _dir_offset = dir_offset(&result);
+//    uint32_t _dir_big = dir_big(&result);
+//    uint32_t _dir_size = dir_size(&result);
+//    uint32_t _dir_tag = dir_tag(&result);
+//    uint32_t _dir_phase = dir_phase(&result);
+//    uint32_t _dir_head = dir_head(&result);
+//    uint32_t _dir_pinned = dir_pinned(&result);
+//    uint32_t _dir_token = dir_token(&result);
+//    uint16_t _dir_next = dir_next(&result);
+//    uint32_t _dir_offset_high = result.w[4];
+
+    //try a wrong read
+    dir_set_offset(&result, 1);
+//    dir_set_offset(&result, 12580);
+    dir_set_big(&result, 0);
+    dir_set_size(&result, 7);
+    dir_set_tag(&result, 3978);
+    dir_set_phase(&result, 0);
+    dir_set_head(&result, 1);
+    dir_set_pinned(&result, 0);
+    dir_set_token(&result, 0);
+    dir_set_next(&result, 0);
+    dir_set_next(&result, 0);
+    result.w[4] = 0;
+
+// last collision need an addr in Dir HashTable
+//    last_collision =
+//    dir_set_offset(&last_collision, 1);
+//    dir_set_big(&last_collision, 0);
+//    dir_set_size(&last_collision, 7);
+//    dir_set_tag(&last_collision, 3978);
+//    dir_set_phase(&last_collision, 0);
+//    dir_set_head(&last_collision, 1);
+//    dir_set_pinned(&last_collision, 0);
+//    dir_set_token(&last_collision, 0);
+//    dir_set_next(&last_collision, 0);
+//    dir_set_next(&last_collision, 0);
+//    last_collision.w[4] = 0;
+//
+//
+//    last_collision = result;
 
     //create the read only when key in virtual disk
     if (vdisk_lookup_flag && flag) {
