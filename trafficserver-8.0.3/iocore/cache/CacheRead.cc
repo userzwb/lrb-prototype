@@ -136,8 +136,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //    uint32_t _dir_offset_high = result.w[4];
 
     //try a wrong read
-    dir_set_offset(&result, 1);
-//    dir_set_offset(&result, 12580);
+//    dir_set_offset(&result, 1);
+    dir_set_offset(&result, 12580);
     dir_set_big(&result, 0);
     dir_set_size(&result, 7);
     dir_set_tag(&result, 3978);
