@@ -2274,10 +2274,9 @@ CacheVC::handleReadDone(int event, Event *e)
         //this is probably random read
         //zhenyu: of course the thing retrieved is invalid
         doc->magic = DOC_MAGIC;
-        auto vdisk_lookup_size = first_key_len;
     //    doc->total_len = 1700;  //debug
-        doc->total_len = vdisk_lookup_size;
-        doc->hlen = 2320;
+        doc->total_len = first_key_value_len;
+        doc->hlen = VDOC_HEADER_LEN;
     //    doc->len = 4092;  //debug
         doc->len = doc->total_len + doc->hlen + sizeof(Doc);
         doc->first_key = first_key;

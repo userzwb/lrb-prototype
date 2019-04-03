@@ -113,7 +113,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     bool flag = !lock.is_locked();
-    uint64_t vdisk_lookup_size = vol->gdbt_cache->lookup(key);
+    uint64_t vdir_value_len = vol->gdbt_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
     if (!flag) {
       od = vol->open_read(key);
@@ -137,10 +137,10 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 
 
     //create the read only when key in virtual disk
-    if (vdisk_lookup_size || flag) {
+    if (vdir_value_len || flag) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;
-      c->first_key_len = vdisk_lookup_size;
+      c->first_key_value_len = vdir_value_len;
       c->vol                                  = vol;
       c->vio.op                               = VIO::READ;
       c->base_stat                            = cache_read_active_stat;
@@ -153,7 +153,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //        empty.
         //try a wrong read. TODO: what range of offset to set? Current choose single value
         dir_set_offset(&result, 12580);
-        dir_set_approx_size(&result, vdisk_lookup_size);
+        dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
         //these I just leave unchanged as the first req of wiki
@@ -176,7 +176,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       CONT_SCHED_LOCK_RETRY(c);
       return &c->_action;
     }
-    if (!vdisk_lookup_size) {
+    if (!vdir_value_len) {
       //always miss if the object not in virtual disk
       goto Lmiss;
     }

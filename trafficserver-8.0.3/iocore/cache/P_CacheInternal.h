@@ -407,7 +407,7 @@ struct CacheVC : public CacheVConnection {
   // These are variables that are always set to the correct values
   // before being used by the CacheVC
   CacheKey key, first_key, earliest_key, update_key;
-  uint64_t first_key_len;
+  uint64_t first_key_value_len;
   Dir dir, earliest_dir, overwrite_dir, first_dir;
   // end Region A
 
