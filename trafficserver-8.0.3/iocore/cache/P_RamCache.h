@@ -117,17 +117,18 @@ public:
         }
     }
 
-    bool lookup(const CacheKey * _key) {
-        bool ret;
+    uint64_t lookup(const CacheKey * _key) {
+        //if size == 0, means not found
+        uint64_t ret=0;
         auto &key = *_key;
 
         //first update the metadata: insert/update, which can trigger pending data.mature
         auto it = key_map.find(key);
         if (it != key_map.end()) {
             auto & pos = it->second;
-            ret = meta_holder[pos]._fetched;
+            if (meta_holder[pos]._fetched)
+                ret = meta_holder[pos]._size;
         } else {
-            ret = false;
         }
         return ret;
     }

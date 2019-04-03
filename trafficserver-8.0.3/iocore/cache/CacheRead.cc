@@ -113,7 +113,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     bool flag = !lock.is_locked();
-    bool vdisk_lookup_flag = vol->gdbt_cache->lookup(key);
+    uint64_t vdisk_lookup_size = vol->gdbt_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
     if (!flag) {
       od = vol->open_read(key);
@@ -135,41 +135,12 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //    uint16_t _dir_next = dir_next(&result);
 //    uint32_t _dir_offset_high = result.w[4];
 
-    //try a wrong read
-//    dir_set_offset(&result, 1);
-    dir_set_offset(&result, 12580);
-    dir_set_big(&result, 0);
-    dir_set_size(&result, 7);
-    dir_set_tag(&result, 3978);
-    dir_set_phase(&result, 0);
-    dir_set_head(&result, 1);
-    dir_set_pinned(&result, 0);
-    dir_set_token(&result, 0);
-    dir_set_next(&result, 0);
-    dir_set_next(&result, 0);
-    result.w[4] = 0;
-
-// last collision need an addr in Dir HashTable
-//    last_collision =
-//    dir_set_offset(&last_collision, 1);
-//    dir_set_big(&last_collision, 0);
-//    dir_set_size(&last_collision, 7);
-//    dir_set_tag(&last_collision, 3978);
-//    dir_set_phase(&last_collision, 0);
-//    dir_set_head(&last_collision, 1);
-//    dir_set_pinned(&last_collision, 0);
-//    dir_set_token(&last_collision, 0);
-//    dir_set_next(&last_collision, 0);
-//    dir_set_next(&last_collision, 0);
-//    last_collision.w[4] = 0;
-//
-//
-//    last_collision = result;
 
     //create the read only when key in virtual disk
-    if (vdisk_lookup_flag && flag) {
+    if (vdisk_lookup_size || flag) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;
+      c->first_key_len = vdisk_lookup_size;
       c->vol                                  = vol;
       c->vio.op                               = VIO::READ;
       c->base_stat                            = cache_read_active_stat;
@@ -177,30 +148,35 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       c->request.copy_shallow(request);
       c->frag_type = CACHE_FRAG_TYPE_HTTP;
       c->params    = params;
-      c->od        = od;
-    }
 
-    //mock: always true
-    vdisk_lookup_flag = true;
-
-    if (vdisk_lookup_flag) {
-      c            = new_CacheVC(cont);
-      c->first_key = c->key = c->earliest_key = *key;
-      c->vol                                  = vol;
-      c->vio.op                               = VIO::READ;
-      c->base_stat                            = cache_read_active_stat;
-      CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
-      c->request.copy_shallow(request);
-      c->frag_type = CACHE_FRAG_TYPE_HTTP;
-      c->params    = params;
-      c->od        = nullptr;
+      if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
+//        empty.
+        //try a wrong read. TODO: what range of offset to set? Current choose single value
+        dir_set_offset(&result, 12580);
+        dir_set_approx_size(&result, vdisk_lookup_size);
+//        dir_set_big(&result, 0);
+//        dir_set_size(&result, 7);
+        //these I just leave unchanged as the first req of wiki
+        dir_set_tag(&result, 3978);
+        dir_set_phase(&result, 0);
+        dir_set_head(&result, 1);
+        dir_set_pinned(&result, 0);
+        dir_set_token(&result, 0);
+        dir_set_next(&result, 0);
+        dir_set_next(&result, 0);
+        result.w[4] = 0;
+        c->od        = nullptr;
+      } else {
+        //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
+        c->od        = od;
+      }
     }
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
       return &c->_action;
     }
-    if (!vdisk_lookup_flag || !c) {
+    if (!vdisk_lookup_size) {
       //always miss if the object not in virtual disk
       goto Lmiss;
     }
@@ -1198,14 +1174,17 @@ CacheVC::openReadStartHead(int event, Event *e)
         }
         goto Ldone;
       }
-      alternate_tmp->m_alt->m_object_size[0] = 1700;
+      if (doc->checksum == 2695938256) {
+          //we know this is random byte
+          alternate_tmp->m_alt->m_object_size[0] = doc->total_len;
+      }
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();
 //      if (key == doc->key) { // is this my data?
       //zhenyu: assume always your data
       f.single_fragment = doc->single_fragment();
-      ink_assert(f.single_fragment); // otherwise need to read earliest
+//      ink_assert(f.single_fragment); // otherwise need to read earliest
       ink_assert(doc->hlen);
       doc_pos = doc->prefix_len();
       next_CacheKey(&key, &doc->key);
@@ -1227,9 +1206,9 @@ CacheVC::openReadStartHead(int event, Event *e)
     }
     // the first fragment might have been gc'ed. Make sure the first
     // fragment is there before returning CACHE_EVENT_OPEN_READ
-    if (!f.single_fragment) {
-      goto Learliest;
-    }
+//    if (!f.single_fragment) {
+//      goto Learliest;
+//    }
 
     if (vol->within_hit_evacuate_window(&dir) &&
         (!cache_config_hit_evacuate_size_limit || doc_len <= (uint64_t)cache_config_hit_evacuate_size_limit)) {
