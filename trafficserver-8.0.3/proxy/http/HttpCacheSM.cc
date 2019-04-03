@@ -146,6 +146,7 @@ HttpCacheSM::state_cache_open_read(int event, void *data)
     } else {
       // Simple miss in the cache.
       open_read_cb = true;
+      //zhenyu: not sure whether write to disk happens here
       master_sm->handleEvent(event, data);
     }
     break;

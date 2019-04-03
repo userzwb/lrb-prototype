@@ -2498,6 +2498,7 @@ HttpSM::state_cache_open_read(int event, void *data)
     }
 
     ink_assert(t_state.transact_return_point == nullptr);
+    //zhenyu: not sure which functions goes to
     t_state.transact_return_point = HttpTransact::HandleCacheOpenRead;
     setup_cache_lookup_complete_api();
     break;

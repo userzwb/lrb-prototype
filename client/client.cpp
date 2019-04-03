@@ -20,7 +20,8 @@ volatile bool queueFull;
 volatile bool running;
 mutex urlMutex;
 mutex histMutex;
-queue<string> urlQueue;
+//key, length TODO: length calculation is broken
+queue<pair<string, uint64_t>> urlQueue;
 char* path;
 string cacheip;
 ofstream outTp;
@@ -46,6 +47,7 @@ void histogram(double val){
   
 int measureThread() {
   string currentID;
+  uint64_t current_len;
 
     CURL *curl_handle;
     /* init the curl session */ 
@@ -66,7 +68,9 @@ int measureThread() {
 
       urlMutex.lock();
       if (!::urlQueue.empty()){
-	currentID = ::urlQueue.front();
+	currentID = ::urlQueue.front().first;
+	current_len = ::urlQueue.front().second;
+
 	urlQueue.pop();
 	urlMutex.unlock();
       }
@@ -76,6 +80,8 @@ int measureThread() {
 	this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
 	continue;
       }
+      //zhenyu: sleep 10 milliseconds
+      this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
       //cerr << "get " << cacheip + currentID << "\n";
       /* set URL to get */ 
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
@@ -101,11 +107,11 @@ int measureThread() {
       const long timeElapsed_ns = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
       histogram(log10(double(timeElapsed_ns)));
       
-      double content_length = 0.0;
-      res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-			      &content_length);
-      if((CURLE_OK == res) && (content_length>0.0)) {
-	bytes += (long)content_length;
+//      double content_length = 0.0;
+//      res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+//			      &content_length);
+      if((CURLE_OK == res)) {
+	bytes += (long)current_len;
 	reqs++;
       }
 
@@ -124,12 +130,13 @@ int requestCreate(){
   infile.open(path);
   unordered_map<long, long> osizes;
   long time, id;
-  while (infile >> time >> id) {
+  uint64_t length;
+  while (infile >> time >> id >> length) {
     if(urlQueue.size()>1000) {
       this_thread::sleep_for (chrono::milliseconds(10));
     }
     urlMutex.lock();
-    urlQueue.push(to_string(id));
+    urlQueue.push({to_string(id), length});
     urlMutex.unlock();
   }
 
