@@ -49,6 +49,7 @@ cd origin
 make
 
 spawn-fcgi -a 127.0.0.1 -p 9000 -n origin/origin origin_wc200m.tr
+# zhenyus: spawn-fcgi -a 127.0.0.1 -p 9000 -n origin/origin origin.tr
 
 # origin also needs nginx running
 sudo apt install nginx
@@ -71,3 +72,4 @@ cd client
 make
 
 ./client /scratch2/traces/exp/client_wc200m.tr 10 127.0.0.1:6000/ outtp outhist
+# zhenyus: ./client/client client_1.tr 10 127.0.0.1:6000/ throughput.log latency.log
