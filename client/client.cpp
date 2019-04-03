@@ -81,7 +81,7 @@ int measureThread() {
 	continue;
       }
       //zhenyu: sleep 10 milliseconds
-      this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
+//      this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
       //cerr << "get " << cacheip + currentID << "\n";
       /* set URL to get */ 
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
