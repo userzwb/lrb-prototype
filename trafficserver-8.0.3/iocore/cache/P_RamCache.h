@@ -25,6 +25,9 @@
 
 #include "I_Cache.h"
 #include <unordered_map>
+#include <list>
+
+//using namespace std;
 // Generic Ram Cache interface
 
 struct RamCache {
@@ -42,6 +45,9 @@ struct RamCache {
 
 RamCache *new_RamCacheLRU();
 RamCache *new_RamCacheCLFUS();
+
+typedef std::list<uint64_t >::iterator ListIteratorType;
+typedef std::unordered_map<uint64_t , ListIteratorType> lruCacheMapType;
 
 class GDBTMeta {
 public:
@@ -90,46 +96,82 @@ public:
 
 class GDBTCache{
 public:
-    //key -> (0/1 list, idx)
-    std::unordered_map <CacheKey, uint32_t> key_map;
-    std::vector<GDBTMeta> meta_holder;
+    // basic cache properties
+    int64_t _cacheSize; // size of cache in bytes
+    int64_t _currentSize; // total size of objects in cache in bytes
+    // list for recency order
+    std::list<uint64_t > _cacheList;
+    // map to find objects in list
+    lruCacheMapType _cacheMap;
+    std::unordered_map<uint64_t , int64_t > _size_map;
+    std::unordered_map<uint64_t , bool>     _fetched_map;
+
+    void init(int64_t max_bytes) {
+        _cacheSize = max_bytes;
+        _currentSize = 0;
+    }
+
     void admit(const CacheKey * _key, const int64_t & size) {
-        auto &key = *_key;
-        auto it = key_map.find(key);
-        if (it == key_map.end()) {
-            //fresh insert
-            key_map.insert({key, meta_holder.size()});
-            meta_holder.emplace_back(key, size);
-        } else {
-            auto & pos = it->second;
-            auto & meta = meta_holder[pos];
-            assert(meta._size == size);
-            assert(meta._key == key);
+        const uint64_t & key = _key->b[0];
+
+        // object feasible to store?
+        if (size > _cacheSize) {
+            return;
+        }
+        // check eviction needed
+        while (_currentSize + size > _cacheSize) {
+            evict();
+        }
+        // admit new object
+        _cacheList.push_front(key);
+        _cacheMap[key] = _cacheList.begin();
+        _currentSize += size;
+        _size_map[key] = size;
+        auto it = _fetched_map.find(key);
+        if (it == _fetched_map.end())
+            _fetched_map.insert({key, false});
+    }
+
+    void evict()
+    {
+        // evict least popular (i.e. last element)
+        if (_cacheList.size() > 0) {
+            ListIteratorType lit = _cacheList.end();
+            lit--;
+            uint64_t obj = *lit;
+            auto & size = _size_map[obj];
+            _currentSize -= size;
+            _size_map.erase(obj);
+            _fetched_map.erase(obj);
+            _cacheMap.erase(obj);
+            _cacheList.erase(lit);
         }
     }
 
     void fetch(const CacheKey * _key) {
-        auto &key = *_key;
-        auto it = key_map.find(key);
-        if (it != key_map.end()) {
-            auto & pos = it->second;
-            meta_holder[pos]._fetched = true;
+        const auto &key = _key->b[0];
+        auto it = _fetched_map.find(key);
+        if (it != _fetched_map.end()) {
+            it->second = true;
         }
     }
 
-    uint64_t lookup(const CacheKey * _key) {
-        //if size == 0, means not found
-        uint64_t ret=0;
-        auto &key = *_key;
+    void hit(lruCacheMapType::const_iterator it, uint64_t size)
+    {
+        _cacheList.splice(_cacheList.begin(), _cacheList, it->second);
+    }
 
-        //first update the metadata: insert/update, which can trigger pending data.mature
-        auto it = key_map.find(key);
-        if (it != key_map.end()) {
-            auto & pos = it->second;
-            if (meta_holder[pos]._fetched)
-                ret = meta_holder[pos]._size;
-        } else {
+    uint64_t lookup(const CacheKey * _key) {
+        const uint64_t & obj = _key->b[0];
+        auto it_fetched = _fetched_map.find(obj);
+        if (it_fetched != _fetched_map.end() && it_fetched->second) {
+            auto it = _cacheMap.find(obj);
+            // log hit
+            auto & size = _size_map[obj];
+//            LOG("h", 0, obj.id, obj.size);
+            hit(it, size);
+            return size;
         }
-        return ret;
+        return 0;
     }
 };
