@@ -113,7 +113,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     bool flag = !lock.is_locked();
-    uint64_t vdir_value_len = vol->gdbt_cache->lookup(key);
+    uint64_t vdir_value_len = vol->vdisk_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
     if (!flag) {
       od = vol->open_read(key);

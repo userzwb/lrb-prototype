@@ -61,6 +61,7 @@ static short int const CACHE_DB_MAJOR_VERSION_COMPATIBLE = 21;
 int64_t cache_config_ram_cache_size            = AUTO_SIZE_RAM_CACHE;
 int64_t cache_config_vdisk_cache_size          = -1;
 int cache_config_ram_cache_algorithm           = 1;
+int cache_config_vdisk_cache_algorithm         = 1;
 int cache_config_ram_cache_compress            = 0;
 int cache_config_ram_cache_compress_percent    = 90;
 int cache_config_ram_cache_use_seen_filter     = 1;
@@ -918,7 +919,6 @@ CacheProcessor::cacheInitialized()
       // new ram_caches, with algorithm from the config
       for (i = 0; i < gnvol; i++) {
         //zhenyu: init VDiskCache
-        gvol[i]->gdbt_cache = new GDBTCache();
         switch (cache_config_ram_cache_algorithm) {
         default:
         case RAM_CACHE_ALGORITHM_CLFUS:
@@ -928,6 +928,15 @@ CacheProcessor::cacheInitialized()
           gvol[i]->ram_cache = new_RamCacheLRU();
           break;
         }
+        switch (cache_config_vdisk_cache_algorithm) {
+        default:
+        case VDISK_CACHE_ALGORITHM_GDBT:
+          gvol[i]->vdisk_cache = new_VdiskCacheGDBT();
+          break;
+        case VDISK_CACHE_ALGORITHM_LRU:
+          gvol[i]->vdisk_cache = new_VdiskCacheLRU();
+          break;
+        }
       }
       // let us calculate the Size
       if (cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE) {
@@ -935,7 +944,7 @@ CacheProcessor::cacheInitialized()
         for (i = 0; i < gnvol; i++) {
           vol = gvol[i];
           gvol[i]->ram_cache->init(vol->dirlen() * DEFAULT_RAM_CACHE_MULTIPLIER, vol);
-          gvol[i]->gdbt_cache->init(cache_config_vdisk_cache_size);
+          gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_size);
           ram_cache_bytes += gvol[i]->dirlen();
           Debug("cache_init", "CacheProcessor::cacheInitialized - ram_cache_bytes = %" PRId64 " = %" PRId64 "Mb", ram_cache_bytes,
                 ram_cache_bytes / (1024 * 1024));
@@ -982,7 +991,7 @@ CacheProcessor::cacheInitialized()
             factor = (double)(int64_t)(gvol[i]->len >> STORE_BLOCK_SHIFT) / (int64_t)theCache->cache_size;
             Debug("cache_init", "CacheProcessor::cacheInitialized - factor = %f", factor);
             gvol[i]->ram_cache->init((int64_t)(http_ram_cache_size * factor), vol);
-            gvol[i]->gdbt_cache->init(cache_config_vdisk_cache_size);
+            gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_size);
             ram_cache_bytes += (int64_t)(http_ram_cache_size * factor);
             CACHE_VOL_SUM_DYN_STAT(cache_ram_cache_bytes_total_stat, (int64_t)(http_ram_cache_size * factor));
           } else {
@@ -3212,6 +3221,7 @@ ink_cache_init(ModuleVersion v)
         cache_config_ram_cache_size / (1024 * 1024));
 
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_algorithm, "proxy.config.cache.ram_cache.algorithm");
+  REC_EstablishStaticConfigInt32(cache_config_vdisk_cache_algorithm, "proxy.config.cache.vdisk_cache.algorithm");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress, "proxy.config.cache.ram_cache.compress");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress_percent, "proxy.config.cache.ram_cache.compress_percent");
   REC_ReadConfigInt32(cache_config_ram_cache_use_seen_filter, "proxy.config.cache.ram_cache.use_seen_filter");

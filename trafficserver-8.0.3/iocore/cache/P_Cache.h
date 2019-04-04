@@ -36,6 +36,7 @@
 #include "P_CacheDisk.h"
 #include "P_CacheDir.h"
 #include "P_RamCache.h"
+#include "P_VDiskCache.h"
 #include "P_CacheVol.h"
 #include "P_CacheInternal.h"
 #include "P_CacheHosting.h"

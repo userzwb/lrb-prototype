@@ -153,7 +153,7 @@ struct Vol : public Continuation {
 
   OpenDir open_dir;
   RamCache *ram_cache            = nullptr;
-  GDBTCache *gdbt_cache       = nullptr;
+  VDiskCache *vdisk_cache       = nullptr;
   int evacuate_size              = 0;
   DLL<EvacuationBlock> *evacuate = nullptr;
   DLL<EvacuationBlock> lookaside[LOOKASIDE_SIZE];

@@ -1172,7 +1172,7 @@ CacheVC::openWriteCloseHeadDone(int event, Event *e)
       goto Lclose;
     }
     //zhenyu: notice the VDisk that disk write is finished
-    vol->gdbt_cache->fetch(&first_key);
+    vol->vdisk_cache->fetch(&first_key);
     ink_assert(f.use_first_key);
     if (!od->dont_update_directory) {
       if (dir_is_empty(&od->first_dir)) {
@@ -1378,7 +1378,7 @@ int
 CacheVC::openWriteMain(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
 {
     //zhenyu: update size
-  vol->gdbt_cache->admit(&first_key, vio.nbytes);
+  vol->vdisk_cache->admit(&first_key, vio.nbytes);
   cancel_trigger();
   int called_user = 0;
   ink_assert(!is_io_in_progress());
