@@ -27,7 +27,9 @@ AM_CPPFLAGS += \
 	-I$(abs_top_srcdir)/proxy/http/remap \
 	-I$(abs_top_srcdir)/mgmt \
 	-I$(abs_top_srcdir)/mgmt/utils \
-	$(TS_INCLUDES)
+	$(TS_INCLUDES) \
+	-I/home/zhenyus/LightGBM/include
+
 
 noinst_LIBRARIES = libinkcache.a
 
