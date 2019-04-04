@@ -22,8 +22,6 @@ public:
 
     virtual void admit(const CacheKey * _key, const int64_t & size) = 0;
 
-    virtual void evict() = 0;
-
     virtual void fetch(const CacheKey * _key) = 0;
 
     virtual uint64_t lookup(const CacheKey * _key) = 0;

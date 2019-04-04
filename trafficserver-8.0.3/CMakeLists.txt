@@ -32,6 +32,10 @@ project(ats)
 
 set(CMAKE_CXX_STANDARD 11)
 
+
+find_library(LIGHTGBM_LIB lib_lightgbm.so)
+find_path(LIGHTGBM_PATH LightGBM)
+
 include_directories(lib
         include
         proxy
@@ -114,6 +118,8 @@ add_executable(traffic_server
 add_custom_target(_traffic_server
         COMMAND make -j8
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+include_directories(${LIGHTGBM_PATH})
 
 add_executable(ats
         src/traffic_via/traffic_via.cc
@@ -1144,6 +1150,9 @@ add_library(libcache SHARED
         iocore/cache/RamCacheCLFUS.cc
         iocore/cache/RamCacheLRU.cc
         iocore/cache/Store.cc
+        iocore/cache/P_VDiskCache.h
+        iocore/cache/VDiskCacheLRU.cc
+        iocore/cache/VDiskCacheGDBT.cc
 )
 
 add_library(libtsconfig SHARED

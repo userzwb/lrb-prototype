@@ -37,7 +37,7 @@ public:
             _fetched_map.insert({key, false});
     }
 
-    void evict() override {
+    void evict() {
         // evict least popular (i.e. last element)
         if (_cacheList.size() > 0) {
             ListIteratorType lit = _cacheList.end();
