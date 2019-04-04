@@ -523,7 +523,7 @@ public:
     }
 
     uint64_t lookup(const CacheKey * _key) override {
-        bool ret;
+        uint64_t ret = 0;
         const uint64_t &key = _key->b[0];
         uint64_t t = t_counter;
         if (!(t%1000000)) {
@@ -571,9 +571,9 @@ public:
             //make this update after update training, otherwise the last timestamp will change
             meta.update(t);
             //update forget_table
-            ret = !list_idx;
+            if (!list_idx)
+                ret = meta._size;
         } else {
-            ret = false;
         }
 
         forget(t);
