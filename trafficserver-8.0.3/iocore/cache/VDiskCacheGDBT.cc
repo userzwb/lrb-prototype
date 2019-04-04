@@ -3,6 +3,7 @@
 //
 
 #include "P_VDiskCache.h"
+#include <atomic>
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -158,7 +159,7 @@ public:
 
     double training_loss = 0;
     uint64_t n_force_eviction = 0;
-    uint64_t t_counter = 0;
+    std::atomic_uint64_t t_counter = {0};
 
     BoosterHandle booster = nullptr;
 
@@ -465,51 +466,60 @@ public:
     }
 
     void admit(const CacheKey * _key, const int64_t & size) override {
-        uint64_t t = t_counter;
-        const uint64_t & key = _key->b[0];
-        // object feasible to store?
-        if (size > _cacheSize) {
-            return;
-        }
+        //the logically time for this tx
+        uint64_t t = t_counter++;
+        if (!(t%1000000))
+            print_stats();
 
-        auto it = key_map.find(key);
-        if (it == key_map.end()) {
-            //fresh insert
-            key_map.insert({key, {0, (uint32_t) meta_holder[0].size()}});
-            meta_holder[0].emplace_back(key, size, t);
-            _currentSize += size;
-            forget_table[(t + GDBT::forget_window)%GDBT::s_forget_table] = key+1;
-            if (_currentSize <= _cacheSize)
-                return;
-        } else if (size + _currentSize <= _cacheSize){
-            //bring list 1 to list 0
-            //first move meta data, then modify hash table
-            uint32_t tail0_pos = meta_holder[0].size();
-            meta_holder[0].emplace_back(meta_holder[1][it->second.second]);
-            uint32_t tail1_pos = meta_holder[1].size()-1;
-            if (it->second.second !=  tail1_pos) {
-                //swap tail
-                meta_holder[1][it->second.second] = meta_holder[1][tail1_pos];
-                key_map.find(meta_holder[1][tail1_pos]._key)->second.second = it->second.second;
+        const uint64_t & key = _key->b[0];
+        uint64_t forget_key = key+1;
+        // object feasible to store?
+        if (size <= _cacheSize) {
+            auto it = key_map.find(key);
+            if (it == key_map.end()) {
+                //fresh insert
+                key_map.insert({key, {0, (uint32_t) meta_holder[0].size()}});
+                meta_holder[0].emplace_back(key, size, t);
+                _currentSize += size;
+                forget_table[(t + GDBT::forget_window) % GDBT::s_forget_table] = key + 1;
+                if (_currentSize <= _cacheSize)
+                    goto Lreturn;
+            } else if (!it->second.first) {
+                std::cerr<<"fatal: admitting object already in cache"<<std::endl;
+                //TODO: handle here
+//                abort();
+            } else if (size + _currentSize <= _cacheSize) {
+                //bring list 1 to list 0
+                //first move meta data, then modify hash table
+                uint32_t tail0_pos = meta_holder[0].size();
+                meta_holder[0].emplace_back(meta_holder[1][it->second.second]);
+                uint32_t tail1_pos = meta_holder[1].size() - 1;
+                if (it->second.second != tail1_pos) {
+                    //swap tail
+                    meta_holder[1][it->second.second] = meta_holder[1][tail1_pos];
+                    key_map.find(meta_holder[1][tail1_pos]._key)->second.second = it->second.second;
+                }
+                meta_holder[1].pop_back();
+                it->second = {0, tail0_pos};
+                _currentSize += size;
+                goto Lreturn;
+            } else {
+                //insert-evict
+                auto epair = rank(t);
+                auto &key0 = epair.first;
+                auto &pos0 = epair.second;
+                auto &pos1 = it->second.second;
+                _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
+                std::swap(meta_holder[0][pos0], meta_holder[1][pos1]);
+                swap(it->second, key_map.find(key0)->second);
             }
-            meta_holder[1].pop_back();
-            it->second = {0, tail0_pos};
-            _currentSize += size;
-            return;
-        } else {
-            //insert-evict
-            auto epair = rank(t);
-            auto & key0 = epair.first;
-            auto & pos0 = epair.second;
-            auto & pos1 = it->second.second;
-            _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
-            std::swap(meta_holder[0][pos0], meta_holder[1][pos1]);
-            swap(it->second, key_map.find(key0)->second);
+            // check more eviction needed?
+            while (_currentSize > _cacheSize) {
+                evict(t);
+            }
         }
-        // check more eviction needed?
-        while (_currentSize > _cacheSize) {
-            evict(t);
-        }
+        Lreturn:
+            forget(t);
     }
 
     void fetch(const CacheKey * _key) override {
@@ -522,18 +532,22 @@ public:
         }
     }
 
+    void print_stats() {
+        std::cerr << "cache size: "<<_currentSize<<"/"<<_cacheSize<<std::endl;
+        std::cerr << "n_metadata: "<<key_map.size()<<std::endl;
+        std::cerr << "n_training: "<<training_data.labels.size()<<std::endl;
+        std::cerr << "training loss: " << training_loss << std::endl;
+        std::cerr << "n_force_eviction: " << n_force_eviction <<std::endl;
+    }
+
     uint64_t lookup(const CacheKey * _key) override {
+        //the logically time for this tx
+        uint64_t t = t_counter++;
+        if (!(t%1000000))
+            print_stats();
+
         uint64_t ret = 0;
         const uint64_t &key = _key->b[0];
-        uint64_t t = t_counter;
-        if (!(t%1000000)) {
-            std::cerr << "cache size: "<<_currentSize<<"/"<<_cacheSize<<std::endl;
-            std::cerr << "n_metadata: "<<key_map.size()<<std::endl;
-            std::cerr << "n_training: "<<training_data.labels.size()<<std::endl;
-            std::cerr << "training loss: " << training_loss << std::endl;
-            std::cerr << "n_force_eviction: " << n_force_eviction <<std::endl;
-        }
-
 
         //first update the metadata: insert/update, which can trigger pending data.mature
         auto it = key_map.find(key);
@@ -546,8 +560,8 @@ public:
             uint64_t last_timestamp = meta._past_timestamp;
             uint64_t forget_timestamp = last_timestamp + GDBT::forget_window;
             //if the key in key_map, it must also in forget table
-            //todo: key never 0 because we want to use forget table 0 means None
             auto &forget_key = forget_table[forget_timestamp % GDBT::s_forget_table];
+            //key never 0 because we want to use forget table 0 means None
             assert(forget_key);
             //re-request
             if (!meta._sample_times.empty()) {
@@ -580,7 +594,6 @@ public:
         //sampling
         if (!(t % training_sample_interval))
             sample(t);
-        ++t_counter;
         return ret;
     }
 
