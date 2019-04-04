@@ -116,7 +116,7 @@ add_executable(traffic_server
 
 #message(${CMAKE_CURRENT_SOURCE_DIR})
 add_custom_target(_traffic_server
-        COMMAND make -j8
+        COMMAND LDFLAGS="-l_lightgbm" make V=1 -j8
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${LIGHTGBM_PATH})

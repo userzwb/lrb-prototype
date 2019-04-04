@@ -90,7 +90,8 @@ traffic_server_traffic_server_LDADD = \
 	@LIBPROFILER@ \
 	@OPENSSL_LIBS@ \
 	@YAMLCPP_LIBS@ \
-	-lm
+	-lm \
+	-l_lightgbm
 
 if IS_DARWIN
 traffic_server_traffic_server_LDADD += $(LUAJIT_DARWIN_LDFLAGS)
