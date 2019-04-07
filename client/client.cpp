@@ -15,6 +15,7 @@
 #include <string>
 #include <stdlib.h>
 #include <math.h>
+#include <random>
 using namespace std;
 volatile bool queueFull;
 volatile bool running;
@@ -25,6 +26,9 @@ queue<pair<string, uint64_t>> urlQueue;
 char* path;
 string cacheip;
 ofstream outTp;
+uint64_t mean;
+default_random_engine generator;
+poisson_distribution<int> distribution;
 
 std::atomic<long> bytes;
 std::atomic<long> reqs;
@@ -81,7 +85,8 @@ int measureThread() {
 	continue;
       }
       //zhenyu: sleep 10 milliseconds
-//      this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
+      auto t_sleep = distribution(generator);
+      this_thread::sleep_for (chrono::microseconds(t_sleep));//wait a little bit
       //cerr << "get " << cacheip + currentID << "\n";
       /* set URL to get */ 
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
@@ -160,8 +165,8 @@ void output() {
 int main (int argc, char* argv[]) {
 
   // parameters
-  if(argc != 6) {
-    cerr << "three params: path noThreads cacheIP outTp outHist" << endl;
+  if(argc != 7) {
+    cerr << "three params: path noThreads cacheIP outTp outHist mean(us)" << endl;
     return 1;
   }
   path = argv[1];
@@ -172,6 +177,8 @@ int main (int argc, char* argv[]) {
   reqs.store(0);
 
   outTp.open(argv[4]);
+  mean = stoull(argv[6]);
+  distribution = poisson_distribution<int>(mean);
 
   // init curl
   curl_global_init(CURL_GLOBAL_ALL);
