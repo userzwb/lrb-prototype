@@ -84,9 +84,6 @@ int measureThread() {
 	this_thread::sleep_for (chrono::milliseconds(10));//wait a little bit
 	continue;
       }
-      //zhenyu: sleep 10 milliseconds
-      auto t_sleep = distribution(generator);
-      this_thread::sleep_for (chrono::microseconds(t_sleep));//wait a little bit
       //cerr << "get " << cacheip + currentID << "\n";
       /* set URL to get */ 
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
@@ -137,9 +134,13 @@ int requestCreate(){
   long time, id;
   uint64_t length;
   while (infile >> time >> id >> length) {
-    if(urlQueue.size()>1000) {
-      this_thread::sleep_for (chrono::milliseconds(10));
+    if(urlQueue.size()>1000000) {
+        cerr<<"more than 1 million requests queuing, stop the client"<<endl;
+        return 0;
+//      this_thread::sleep_for (chrono::milliseconds(10));
     }
+      auto t_sleep = distribution(generator);
+      this_thread::sleep_for (chrono::microseconds(t_sleep));//wait a little bit
     urlMutex.lock();
     urlQueue.push({to_string(id), length});
     urlMutex.unlock();
