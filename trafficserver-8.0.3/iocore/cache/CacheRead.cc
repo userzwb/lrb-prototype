@@ -153,6 +153,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //        empty.
         //try a wrong read. TODO: what range of offset to set? Current choose single value
         dir_set_offset(&result, 12580);
+        //the normal offset
+//        dir_set_offset(&result, 1);
         dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
@@ -1091,13 +1093,13 @@ CacheVC::openReadStartHead(int event, Event *e)
     }
     // an object needs to be outside the aggregation window in order to be
     // be evacuated as it is read
-    if (!dir_agg_valid(vol, &dir)) {
-      // a directory entry which is nolonger valid may have been overwritten
-      if (!dir_valid(vol, &dir)) {
-        last_collision = nullptr;
-      }
-      goto Lread;
-    }
+//    if (!dir_agg_valid(vol, &dir)) {
+//      // a directory entry which is nolonger valid may have been overwritten
+//      if (!dir_valid(vol, &dir)) {
+//        last_collision = nullptr;
+//      }
+//      goto Lread;
+//    }
     doc = (Doc *)buf->data();
     if (doc->magic != DOC_MAGIC) {
       char tmpstring[CRYPTO_HEX_SIZE];
