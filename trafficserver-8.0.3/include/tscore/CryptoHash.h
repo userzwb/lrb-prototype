@@ -24,7 +24,6 @@
 
 #include "tscore/BufferWriter.h"
 #include <string_view>
-#include <functional>
 
 /// Apache Traffic Server commons.
 
@@ -107,9 +106,6 @@ union CryptoHash {
   /// Fast conversion to hex in fixed sized string.
   char *toHexStr(char buffer[(CRYPTO_HASH_SIZE * 2) + 1]) const;
 };
-
-
-
 
 extern CryptoHash const CRYPTO_HASH_ZERO;
 
@@ -200,17 +196,6 @@ bwformat(BufferWriter &w, BWFSpec const &spec, ats::CryptoHash const &hash)
   return bwformat(w, local_spec, std::string_view(reinterpret_cast<const char *>(hash.u8), CRYPTO_HASH_SIZE));
 }
 } // namespace ts
-
-namespace std {
-    template<>
-    struct hash<ats::CryptoHash> {
-    public:
-        inline size_t operator() (const ats::CryptoHash & c) const {
-          return c.b[0];
-        }
-
-    };
-}
 
 using ats::CryptoHash;
 using ats::CryptoContext;

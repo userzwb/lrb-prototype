@@ -42,4 +42,3 @@ struct RamCache {
 
 RamCache *new_RamCacheLRU();
 RamCache *new_RamCacheCLFUS();
-
