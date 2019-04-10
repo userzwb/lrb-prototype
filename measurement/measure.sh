@@ -2,7 +2,7 @@
 
 alg=fifo
 #alg=gbdt
-#2424// for debug
+# for debug
 #u=k
 # for dev
 u=m
