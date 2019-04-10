@@ -791,6 +791,7 @@ CacheVC::openReadMain(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
   vio.ndone += bytes;
   doc_pos += bytes;
   if (vio.ntodo() <= 0) {
+      //zhenyus: hit goes here
     return calluser(VC_EVENT_READ_COMPLETE);
   } else {
     if (calluser(VC_EVENT_READ_READY) == EVENT_DONE) {
@@ -1126,6 +1127,7 @@ CacheVC::openReadStartHead(int event, Event *e)
     earliest_dir = dir;
     CacheHTTPInfo *alternate_tmp;
     if (frag_type == CACHE_FRAG_TYPE_HTTP) {
+        //zhenyus: hit goes here
       uint32_t uml;
       ink_assert(doc->hlen);
       if (!doc->hlen) {
@@ -1158,6 +1160,7 @@ CacheVC::openReadStartHead(int event, Event *e)
         goto Ldone;
       }
       if (cache_config_select_alternate) {
+          //zhenyus: hit goes here
         alternate_index = HttpTransactCache::SelectFromAlternates(&vector, &request, params);
         if (alternate_index < 0) {
           err = ECACHE_ALT_MISS;

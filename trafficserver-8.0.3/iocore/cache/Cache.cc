@@ -2265,7 +2265,8 @@ CacheVC::handleReadDone(int event, Event *e)
 
   Doc *doc = nullptr;
   if (event == AIO_EVENT_DONE) {
-    set_io_not_in_progress();
+    //zhenyus: git goes here
+      set_io_not_in_progress();
   } else if (is_io_in_progress()) {
     return EVENT_CONT;
   }
@@ -2348,6 +2349,7 @@ CacheVC::handleReadDone(int event, Event *e)
         goto Ldone;
       }
     } else if (doc->doc_type == CACHE_FRAG_TYPE_HTTP) { // handle any version updates based on the object version
+        //zhenyu: hit goes here
       if (VersionNumber(doc->v_major, doc->v_minor) > CACHE_DB_VERSION) {
         // future version, count as corrupted
         doc->magic = DOC_CORRUPT;
@@ -2377,8 +2379,10 @@ CacheVC::handleReadDone(int event, Event *e)
 
     // put into ram cache?
     if (io.ok() && ((doc->first_key == *read_key) || (doc->key == *read_key) || STORE_COLLISION) && doc->magic == DOC_MAGIC) {
+        //zhenyus: hit goes here
       int okay = 1;
       if (!f.doc_from_ram_cache) {
+          //zhenyus: hit goes here
         f.not_from_ram_cache = 1;
       }
       if (cache_config_enable_checksum && doc->checksum != DOC_NO_CHECKSUM) {
@@ -2403,10 +2407,12 @@ CacheVC::handleReadDone(int event, Event *e)
       // If http doc we need to unmarshal the headers before putting in the ram cache
       // unless it could be compressed
       if (!http_copy_hdr && doc->doc_type == CACHE_FRAG_TYPE_HTTP && doc->hlen && okay) {
+          //zhenyus: hit goes here
         unmarshal_helper(doc, buf, okay);
       }
       // Put the request in the ram cache only if its a open_read or lookup
       if (vio.op == VIO::READ && okay) {
+          //zhenyus: hit goes here
         bool cutoff_check;
         // cutoff_check :
         // doc_len == 0 for the first fragment (it is set from the vector)
@@ -2417,6 +2423,7 @@ CacheVC::handleReadDone(int event, Event *e)
         cutoff_check = ((!doc_len && (int64_t)doc->total_len < cache_config_ram_cache_cutoff) ||
                         (doc_len && (int64_t)doc_len < cache_config_ram_cache_cutoff) || !cache_config_ram_cache_cutoff);
         if (cutoff_check && !f.doc_from_ram_cache) {
+            //zhenyus: hit goes here
           uint64_t o = dir_offset(&dir);
           vol->ram_cache->put(read_key, buf.get(), doc->len, http_copy_hdr, (uint32_t)(o >> 32), (uint32_t)o);
         }
@@ -2424,6 +2431,7 @@ CacheVC::handleReadDone(int event, Event *e)
           // keep a pointer to it. In case the state machine decides to
           // update this document, we don't have to read it back in memory
           // again
+            //zhenyus: hit goes here
           vol->first_fragment_key    = *read_key;
           vol->first_fragment_offset = dir_offset(&dir);
           vol->first_fragment_data   = buf;
