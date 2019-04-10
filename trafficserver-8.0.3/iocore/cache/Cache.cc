@@ -936,6 +936,9 @@ CacheProcessor::cacheInitialized()
         case VDISK_CACHE_ALGORITHM_LRU:
           gvol[i]->vdisk_cache = new_VdiskCacheLRU();
           break;
+        case VDISK_CACHE_ALGORITHM_STATIC:
+            gvol[i]->vdisk_cache = new_VdiskCacheStatic();
+            break;
         }
       }
       // let us calculate the Size

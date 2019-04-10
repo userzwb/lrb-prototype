@@ -1153,6 +1153,7 @@ add_library(libcache SHARED
         iocore/cache/P_VDiskCache.h
         iocore/cache/VDiskCacheLRU.cc
         iocore/cache/VDiskCacheGDBT.cc
+        iocore/cache/VDiskCacheStatic.cc
 )
 
 add_library(libtsconfig SHARED
