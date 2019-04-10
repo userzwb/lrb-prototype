@@ -135,12 +135,16 @@ int requestCreate(){
   uint64_t length;
   while (infile >> time >> id >> length) {
     if(urlQueue.size()>1000000) {
-        cerr<<"more than 1 million requests queuing, stop the client"<<endl;
-        return 0;
-//      this_thread::sleep_for (chrono::milliseconds(10));
+        if (mean) {
+            cerr << "more than 1 million requests queuing, stop the client" << endl;
+            return 0;
+        } else
+            this_thread::sleep_for (chrono::milliseconds(10));
     }
-      auto t_sleep = distribution(generator);
-      this_thread::sleep_for (chrono::microseconds(t_sleep));//wait a little bit
+    if (mean) {
+        auto t_sleep = distribution(generator);
+        this_thread::sleep_for(chrono::microseconds(t_sleep));//wait a little bit
+    }
     urlMutex.lock();
     urlQueue.push({to_string(id), length});
     urlMutex.unlock();
@@ -179,7 +183,8 @@ int main (int argc, char* argv[]) {
 
   outTp.open(argv[4]);
   mean = stoull(argv[6]);
-  distribution = poisson_distribution<int>(mean);
+  if (mean)
+    distribution = poisson_distribution<int>(mean);
 
   // init curl
   curl_global_init(CURL_GLOBAL_ALL);
