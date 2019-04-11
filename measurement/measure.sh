@@ -33,4 +33,5 @@ for s in "${sizes[@]}"; do
 done
 
 #download
-scp -3 cache_client:~/webtracereplay/log/* fat:~/webcachesim/ats_log/
+scp cache_client:~/webtracereplay/log/* .
+scp ./* fat:~/webcachesim/ats_log/
