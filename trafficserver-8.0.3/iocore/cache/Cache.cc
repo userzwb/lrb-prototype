@@ -2497,9 +2497,10 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
 
   io.aiocb.aio_fildes = vol->fd;
   io.aiocb.aio_offset = vol->vol_offset(&dir);
-  if ((off_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) > (off_t)(vol->skip + vol->len)) {
-    io.aiocb.aio_nbytes = vol->skip + vol->len - io.aiocb.aio_offset;
-  }
+  //to make it simple, never bypass the boundary
+//  if ((off_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) > (off_t)(vol->skip + vol->len)) {
+//    io.aiocb.aio_nbytes = vol->skip + vol->len - io.aiocb.aio_offset;
+//  }
   buf              = new_IOBufferData(iobuffer_size_to_index(io.aiocb.aio_nbytes, MAX_BUFFER_SIZE_INDEX), MEMALIGNED);
   io.aiocb.aio_buf = buf->data();
   io.action        = this;

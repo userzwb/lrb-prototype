@@ -152,7 +152,10 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
 //        empty.
         //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
-        dir_set_offset(&result, (key->b[0] & 0xffff000ull));
+        //zhenyu: this offset's unit is block
+        uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull)>>CACHE_BLOCK_SHIFT;
+//        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
+        dir_set_offset(&result, aio_offset);
         //the normal offset
 //        dir_set_offset(&result, 1);
         dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
