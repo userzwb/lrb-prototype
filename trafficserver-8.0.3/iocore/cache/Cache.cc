@@ -59,7 +59,6 @@ static short int const CACHE_DB_MAJOR_VERSION_COMPATIBLE = 21;
 // Configuration
 
 int64_t cache_config_ram_cache_size            = AUTO_SIZE_RAM_CACHE;
-int64_t cache_config_vdisk_cache_size          = -1;
 int cache_config_ram_cache_algorithm           = 1;
 int cache_config_vdisk_cache_algorithm         = 1;
 int cache_config_ram_cache_compress            = 0;
@@ -947,7 +946,7 @@ CacheProcessor::cacheInitialized()
         for (i = 0; i < gnvol; i++) {
           vol = gvol[i];
           gvol[i]->ram_cache->init(vol->dirlen() * DEFAULT_RAM_CACHE_MULTIPLIER, vol);
-          gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_size);
+          gvol[i]->vdisk_cache->init(gvol[i]->len);
           ram_cache_bytes += gvol[i]->dirlen();
           Debug("cache_init", "CacheProcessor::cacheInitialized - ram_cache_bytes = %" PRId64 " = %" PRId64 "Mb", ram_cache_bytes,
                 ram_cache_bytes / (1024 * 1024));
@@ -994,7 +993,7 @@ CacheProcessor::cacheInitialized()
             factor = (double)(int64_t)(gvol[i]->len >> STORE_BLOCK_SHIFT) / (int64_t)theCache->cache_size;
             Debug("cache_init", "CacheProcessor::cacheInitialized - factor = %f", factor);
             gvol[i]->ram_cache->init((int64_t)(http_ram_cache_size * factor), vol);
-            gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_size);
+            gvol[i]->vdisk_cache->init(gvol[i]->len);
             ram_cache_bytes += (int64_t)(http_ram_cache_size * factor);
             CACHE_VOL_SUM_DYN_STAT(cache_ram_cache_bytes_total_stat, (int64_t)(http_ram_cache_size * factor));
           } else {
@@ -3235,7 +3234,6 @@ ink_cache_init(ModuleVersion v)
   cache_rsb = RecAllocateRawStatBlock((int)cache_stat_count);
 
   REC_EstablishStaticConfigInteger(cache_config_ram_cache_size, "proxy.config.cache.ram_cache.size");
-  REC_EstablishStaticConfigInteger(cache_config_vdisk_cache_size, "proxy.config.cache.vdisk_cache.size");
   Debug("cache_init", "proxy.config.cache.ram_cache.size = %" PRId64 " = %" PRId64 "Mb", cache_config_ram_cache_size,
         cache_config_ram_cache_size / (1024 * 1024));
 
