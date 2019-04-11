@@ -33,7 +33,8 @@ poisson_distribution<int> distribution;
 std::atomic<long> bytes;
 std::atomic<long> reqs;
 
-unordered_map<double,long> histData;
+unordered_map<double,long> e2e_latency_histData;
+unordered_map<double,long> fb_latency_histData;
 
 static size_t throw_away(void *ptr, size_t size, size_t nmemb, void *data)
 {
@@ -43,12 +44,14 @@ static size_t throw_away(void *ptr, size_t size, size_t nmemb, void *data)
 }
 
 
-void histogram(double val){
-  histMutex.lock();
-  histData[round(val*10)/10.0]++;
-  histMutex.unlock();
+void histogram(double val_e2e, double val_fb){
+    //input unit: log10(ns)
+    histMutex.lock();
+    e2e_latency_histData[round(val_e2e*10)/10.0]++;
+    fb_latency_histData[round(val_fb*10)/10.0]++;
+    histMutex.unlock();
 }
-  
+
 int measureThread() {
   string currentID;
   uint64_t current_len;
@@ -89,14 +92,10 @@ int measureThread() {
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
       //fetch URL
       CURLcode res;
-      chrono::high_resolution_clock::time_point start;
-      chrono::high_resolution_clock::time_point end;
       // if couldn't connect, try again
       for(int failc=0; failc<10; failc++) {
 	//profile latency and perform
-	start = chrono::high_resolution_clock::now();
 	res = curl_easy_perform(curl_handle);
-	end = chrono::high_resolution_clock::now();	
 	if(res == CURLE_OK)
 	  break;
 	else if(res == CURLE_COULDNT_CONNECT)
@@ -105,18 +104,23 @@ int measureThread() {
 	  continue; //fail and don't try again
       }
 
-      //get elapsed time
-      const long timeElapsed_ns = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-      histogram(log10(double(timeElapsed_ns)));
-      
+
+      //cannot get size information for fake header
 //      double content_length = 0.0;
 //      res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
 //			      &content_length);
-      if((CURLE_OK == res)) {
-	bytes += (long)current_len;
-	reqs++;
-      }
 
+      if((CURLE_OK == res)) {
+        bytes += (long)current_len;
+        reqs++;
+
+          double t_fb;
+          curl_easy_getinfo(curl_handle, CURLINFO_STARTTRANSFER_TIME, &t_fb);
+          double t_e2e;
+          curl_easy_getinfo(curl_handle, CURLINFO_TOTAL_TIME, &t_e2e);
+          //get elapsed time
+          histogram(log10(t_e2e)+9, log10(t_fb)+9);
+      }
       currentID.clear();
     }
 
@@ -171,7 +175,7 @@ int main (int argc, char* argv[]) {
 
   // parameters
   if(argc != 7) {
-    cerr << "three params: path noThreads cacheIP outTp outHist mean(us)" << endl;
+    cerr << "usage: path noThreads cacheIP throughput_log latency_log mean(us, 0 is asap)" << endl;
     return 1;
   }
   path = argv[1];
@@ -217,8 +221,10 @@ int main (int argc, char* argv[]) {
 
   ofstream outHist;
   outHist.open(argv[5]);
-  for(auto it: histData)
-    outHist << it.first << " " << it.second << endl;
+  for(auto it: e2e_latency_histData)
+    outHist << "e2e "<< it.first << " " << it.second << endl;
+  for(auto it: fb_latency_histData)
+    outHist << "fb " << it.first << " " << it.second << endl;
 
   return 0;
 }
