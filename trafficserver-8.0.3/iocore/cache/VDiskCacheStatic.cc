@@ -14,9 +14,11 @@ public:
     }
 
     uint64_t lookup(const CacheKey * _key) override {
-        if (!(_key->b[0]%10))
+        //give it 25% miss rate, according to GBDT hit rate from wiki
+        if (!(_key->b[0]%4))
             return 0;
-        return 2000;
+        //average size is 129k
+        return 129000;
     }
 };
 
