@@ -1171,8 +1171,6 @@ CacheVC::openWriteCloseHeadDone(int event, Event *e)
     if (!io.ok()) {
       goto Lclose;
     }
-    //zhenyu: notice the VDisk that disk write is finished
-    vol->vdisk_cache->fetch(&first_key);
     ink_assert(f.use_first_key);
     if (!od->dont_update_directory) {
       if (dir_is_empty(&od->first_dir)) {
@@ -1377,8 +1375,6 @@ target_fragment_size()
 int
 CacheVC::openWriteMain(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
 {
-    //zhenyu: update size
-  vol->vdisk_cache->admit(&first_key, vio.nbytes);
   cancel_trigger();
   int called_user = 0;
   ink_assert(!is_io_in_progress());
@@ -1393,6 +1389,8 @@ Lagain:
   }
   if (vio.ntodo() <= 0) {
     called_user = 1;
+      //zhenyu: transfer is finished. Admit the object
+      vol->vdisk_cache->admit(&first_key, vio.nbytes);
     if (calluser(VC_EVENT_WRITE_COMPLETE) == EVENT_DONE) {
       return EVENT_DONE;
     }

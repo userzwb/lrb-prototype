@@ -3,17 +3,29 @@
 //
 
 #include "P_VDiskCache.h"
+#include <atomic>
 
 class VDiskCacheStatic: public VDiskCache{
 public:
 
     void admit(const CacheKey * _key, const int64_t & size) override {
-    }
-
-    void fetch(const CacheKey * _key) override {
+//        static std::atomic<int> concurrent_counter = {0};
+//        static std::atomic<uint64_t > counter = {0};
+//        printf("#admit: %d\n", ++counter);
+//        int n_concurrent = ++concurrent_counter;
+//        usleep(1000000);
+//        printf("admit concurrency counter: %d\n", n_concurrent);
+//        --concurrent_counter;
     }
 
     uint64_t lookup(const CacheKey * _key) override {
+//        static std::atomic<int> concurrent_counter = {0};
+//        static std::atomic<uint64_t > counter = {0};
+//        printf("#lookup: %d\n", ++counter);
+//        int n_concurrent = ++concurrent_counter;
+//        usleep(1000000);
+//        printf("lookup concurrency counter: %d\n", n_concurrent);
+//        --concurrent_counter;
         //give it 25% miss rate, according to GBDT hit rate from wiki
         if (!(_key->b[0]%4))
             return 0;

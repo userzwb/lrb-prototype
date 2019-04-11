@@ -14,7 +14,6 @@ public:
     // map to find objects in list
     lruCacheMapType _cacheMap;
     std::unordered_map<uint64_t , int64_t > _size_map;
-    std::unordered_map<uint64_t , bool>     _fetched_map;
 
     void admit(const CacheKey * _key, const int64_t & size) override {
         const uint64_t & key = _key->b[0];
@@ -32,9 +31,6 @@ public:
         _cacheMap[key] = _cacheList.begin();
         _currentSize += size;
         _size_map[key] = size;
-        auto it = _fetched_map.find(key);
-        if (it == _fetched_map.end())
-            _fetched_map.insert({key, false});
     }
 
     void evict() {
@@ -46,17 +42,8 @@ public:
             auto & size = _size_map[obj];
             _currentSize -= size;
             _size_map.erase(obj);
-            _fetched_map.erase(obj);
             _cacheMap.erase(obj);
             _cacheList.erase(lit);
-        }
-    }
-
-    void fetch(const CacheKey * _key) override {
-        const auto &key = _key->b[0];
-        auto it = _fetched_map.find(key);
-        if (it != _fetched_map.end()) {
-            it->second = true;
         }
     }
 
@@ -66,9 +53,8 @@ public:
 
     uint64_t lookup(const CacheKey * _key) override {
         const uint64_t & obj = _key->b[0];
-        auto it_fetched = _fetched_map.find(obj);
-        if (it_fetched != _fetched_map.end() && it_fetched->second) {
-            auto it = _cacheMap.find(obj);
+        auto it = _cacheMap.find(obj);
+        if (it != _cacheMap.end()) {
             // log hit
             auto & size = _size_map[obj];
 //            LOG("h", 0, obj.id, obj.size);

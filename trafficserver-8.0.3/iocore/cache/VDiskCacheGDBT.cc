@@ -38,7 +38,6 @@ public:
 //    vector<uint64_t> _extra_features;
     std::vector<double > _edwt;
     std::vector<uint64_t> _sample_times;
-    bool _fetched;
 
     GDBTMeta(
             const uint64_t & key,
@@ -53,7 +52,6 @@ public:
         _past_distance_idx = (uint8_t) 0;
 //        _extra_features = extra_features;
         _edwt = std::vector<double >(GDBT::n_edwt_feature, 1);
-        _fetched = false;
     }
 
 
@@ -520,16 +518,6 @@ public:
         }
         Lreturn:
             forget(t);
-    }
-
-    void fetch(const CacheKey * _key) override {
-        const uint64_t &key = _key->b[0];
-        auto it = key_map.find(key);
-        if (it != key_map.end()) {
-            auto & list_idx = it->second.first;
-            auto & pos = it->second.second;
-            meta_holder[list_idx][pos]._fetched = true;
-        }
     }
 
     void print_stats() {
