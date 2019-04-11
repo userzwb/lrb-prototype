@@ -151,8 +151,9 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 
       if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
 //        empty.
-        //try a wrong read. TODO: what range of offset to set? Current choose single value
-        dir_set_offset(&result, 12580);
+        result.w[4] = 0;
+        //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
+        dir_set_offset(&result, (key->b[0] & 0x1fbffff000ull));
         //the normal offset
 //        dir_set_offset(&result, 1);
         dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
@@ -166,7 +167,6 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         dir_set_token(&result, 0);
         dir_set_next(&result, 0);
         dir_set_next(&result, 0);
-        result.w[4] = 0;
         c->od        = nullptr;
       } else {
         //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
