@@ -608,7 +608,7 @@ add_executable(ats
         plugins/experimental/tls_bridge/regex.h
         plugins/experimental/tls_bridge/tls_bridge.cc
         plugins/experimental/uri_signing/config.c
-        plugins/experimental/uri_signing/config.h
+#        plugins/experimental/uri_signing/config.h
         plugins/experimental/uri_signing/cookie.c
         plugins/experimental/uri_signing/cookie.h
         plugins/experimental/uri_signing/jwt.c
