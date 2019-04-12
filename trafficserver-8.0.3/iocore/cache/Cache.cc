@@ -2274,14 +2274,14 @@ CacheVC::handleReadDone(int event, Event *e)
     if (!lock.is_locked()) {
       VC_SCHED_LOCK_RETRY();
     }
-    if ((!io.ok())) {
-      if (!io.ok()) {
+    if (!io.ok()) {
+        printf("zhenyu: read error on disk\n");
+        abort();
 //        Debug("cache_disk_error", "Read error on disk %s\n \
 //	    read range : [%" PRIu64 " - %" PRIu64 " bytes]  [%" PRIu64 " - %" PRIu64 " blocks] \n",
 //              vol->hash_text.get(), (uint64_t)io.aiocb.aio_offset, (uint64_t)io.aiocb.aio_offset + io.aiocb.aio_nbytes,
 //              (uint64_t)io.aiocb.aio_offset / 512, (uint64_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) / 512);
-      }
-      goto Ldone;
+//      goto Ldone;
     }
 
     if (buf->block_size() < VDOC_HEADER_LEN) {
