@@ -36,3 +36,5 @@ latency.log
 throughput.log
 
 cmake-build-debug
+client_100m.tr
+origin_200m.tr

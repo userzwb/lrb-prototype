@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Asssume not recompile, origin already running. Only change size
 
-alg=fifo
+#alg=fifo
+#alg=lru
+alg=static
 #alg=gbdt
 # for debug
 #u=k
 # for dev
 u=m
 
-sizes=(128G 512G)
+sizes=(128G)
 n_client=256
 
 for s in "${sizes[@]}"; do
