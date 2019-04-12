@@ -88,8 +88,9 @@ int measureThread() {
 	continue;
       }
       //cerr << "get " << cacheip + currentID << "\n";
-      /* set URL to get */ 
+      /* set URL to get */
       curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
+      curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 10L);
       //fetch URL
       CURLcode res;
       // if couldn't connect, try again
@@ -103,7 +104,7 @@ int measureThread() {
 	else if(res == CURLE_COULDNT_CONNECT)
 	  this_thread::sleep_for (chrono::milliseconds(1));//wait a little bit
 	else
-	  continue; //fail and don't try again
+	  break; //fail and don't try again
       }
 
 
