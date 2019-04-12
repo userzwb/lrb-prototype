@@ -21,7 +21,7 @@ public:
         _mutex.lock();
         const uint64_t & key = _key->b[0];
         //already admitted
-        if (_cacheMap.find(key) == _cacheMap.end())
+        if (_cacheMap.find(key) != _cacheMap.end())
             goto LDone;
 
         // object feasible to store?
