@@ -98,6 +98,8 @@ int measureThread() {
 	res = curl_easy_perform(curl_handle);
 	if(res == CURLE_OK)
 	  break;
+	else if (res == CURLE_PARTIAL_FILE)
+	    break;  //fake
 	else if(res == CURLE_COULDNT_CONNECT)
 	  this_thread::sleep_for (chrono::milliseconds(1));//wait a little bit
 	else
@@ -110,7 +112,7 @@ int measureThread() {
 //      res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
 //			      &content_length);
 
-      if((CURLE_OK == res)) {
+      if((CURLE_OK == res || CURLE_PARTIAL_FILE == res)) {
         bytes += (long)current_len;
         reqs++;
 
