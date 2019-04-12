@@ -181,6 +181,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
+        c->dir = c->first_dir = result;
+        c->last_collision     = last_collision;
       return &c->_action;
     }
     if (!vdir_value_len) {
@@ -1085,6 +1087,8 @@ CacheVC::openReadStartHead(int event, Event *e)
   if (_action.cancelled) {
     return free_CacheVC(this);
   }
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
   {
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     if (!lock.is_locked()) {
@@ -1250,15 +1254,17 @@ CacheVC::openReadStartHead(int event, Event *e)
       SET_HANDLER(&CacheVC::openReadFromWriter);
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
-    if (dir_probe(&key, vol, &dir, &last_collision)) {
-      first_dir = dir;
-      int ret   = do_read_call(&key);
+//    if (dir_probe(&key, vol, &dir, &last_collision)) {
+//      first_dir = dir;
+    //zhenyu: always do read
+      int ret  = do_read_call(&key);
       if (ret == EVENT_RETURN) {
         goto Lcallreturn;
       }
       return ret;
-    }
+//    }
   }
+#pragma clang diagnostic pop
 Ldone:
   if (!f.lookup) {
     CACHE_INCREMENT_DYN_STAT(cache_read_failure_stat);
