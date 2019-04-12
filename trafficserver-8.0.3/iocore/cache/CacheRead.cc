@@ -116,13 +116,13 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     uint64_t vdir_value_len = vol->vdisk_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
     if (!flag) {
-      od = vol->open_read(key);
-      if (od) {
-        flag = true;
-      } else {
+//      od = vol->open_read(key);
+//      if (od) {
+//        flag = true;
+//      } else {
       //zhenyu: here get the Dir
         flag = dir_probe(key, vol, &result, &last_collision);
-      }
+//      }
     }
 //    uint64_t _dir_offset = dir_offset(&result);
 //    uint32_t _dir_big = dir_big(&result);
@@ -171,7 +171,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         c->od        = nullptr;
       } else {
         //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
-        c->od        = od;
+          c->od        = nullptr;
+//        c->od        = od;
         //if the dir is crashed
         if (dir_approx_size(&result) < VDOC_HEADER_LEN)
             dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
