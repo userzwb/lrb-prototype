@@ -2,8 +2,8 @@
 # Asssume not recompile, origin already running. Only change size
 
 #alg=fifo
-#alg=lru
-alg=static
+alg=lru
+#alg=static
 #alg=gbdt
 # for debug
 #u=k

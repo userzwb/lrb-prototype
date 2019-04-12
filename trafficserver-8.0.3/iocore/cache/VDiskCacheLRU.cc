@@ -20,6 +20,9 @@ public:
     void admit(const CacheKey * _key, const int64_t & size) override {
         _mutex.lock();
         const uint64_t & key = _key->b[0];
+        //already admitted
+        if (_cacheMap.find(key) == _cacheMap.end())
+            goto LDone;
 
         // object feasible to store?
         if (size > _cacheSize) {
