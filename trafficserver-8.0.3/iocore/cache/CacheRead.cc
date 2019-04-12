@@ -172,6 +172,9 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       } else {
         //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
         c->od        = od;
+        //if the dir is crashed
+        if (dir_approx_size(&result) < VDOC_HEADER_LEN)
+            dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
       }
     }
     if (!lock.is_locked()) {
@@ -1180,10 +1183,11 @@ CacheVC::openReadStartHead(int event, Event *e)
         }
         goto Ldone;
       }
-      if (doc->checksum == 2695938256) {
+//      if (doc->checksum == 2695938256) {
           //we know this is random byte
-          alternate_tmp->m_alt->m_object_size[0] = doc->total_len;
-      }
+          //always set this
+        alternate_tmp->m_alt->m_object_size[0] = doc->total_len;
+//      }
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();
