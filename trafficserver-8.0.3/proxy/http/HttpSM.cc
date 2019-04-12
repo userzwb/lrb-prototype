@@ -3303,19 +3303,20 @@ HttpSM::tunnel_handler_cache_read(int event, HttpTunnelProducer *p)
   case VC_EVENT_ERROR:
   case VC_EVENT_EOS:
     ink_assert(t_state.cache_info.object_read->valid());
-    if (t_state.cache_info.object_read->object_size_get() != INT64_MAX || event == VC_EVENT_ERROR) {
-      // Abnormal termination
-      t_state.squid_codes.log_code = SQUID_LOG_TCP_SWAPFAIL;
-      p->vc->do_io_close(EHTTP_ERROR);
-      p->read_vio = nullptr;
-      tunnel.chain_abort_all(p);
-      HTTP_INCREMENT_DYN_STAT(http_cache_read_errors);
-      break;
-    } else {
+    //assume always correct
+//    if (t_state.cache_info.object_read->object_size_get() != INT64_MAX || event == VC_EVENT_ERROR) {
+//       Abnormal termination
+//      t_state.squid_codes.log_code = SQUID_LOG_TCP_SWAPFAIL;
+//      p->vc->do_io_close(EHTTP_ERROR);
+//      p->read_vio = nullptr;
+//      tunnel.chain_abort_all(p);
+//      HTTP_INCREMENT_DYN_STAT(http_cache_read_errors);
+//      break;
+//    } else {
       tunnel.local_finish_all(p);
       // fall through for the case INT64_MAX read with VC_EVENT_EOS
       // callback (read successful)
-    }
+//    }
     // fallthrough
 
   case VC_EVENT_READ_COMPLETE:
