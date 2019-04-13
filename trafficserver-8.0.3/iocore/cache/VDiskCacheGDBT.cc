@@ -11,6 +11,8 @@
 #include <random>
 #include <assert.h>
 #include <LightGBM/c_api.h>
+#include <mutex>
+#include <thread>
 
 namespace GDBT {
     uint8_t max_n_past_timestamps = 32;
@@ -20,7 +22,7 @@ namespace GDBT {
     std::vector<uint32_t > edwt_windows;
     std::vector<double > hash_edwt;
     uint32_t max_hash_edwt_idx;
-    uint64_t forget_window = 10000000;
+    uint64_t forget_window = 80000000;
     uint64_t s_forget_table = forget_window + 1;
 //    uint64_t n_extra_fields = 0;
     uint64_t batch_size = 100000;
@@ -73,6 +75,7 @@ public:
 
 class GDBTTrainingData {
 public:
+    //overhead: 536 * batch size bytes
     std::vector<float> labels;
     std::vector<int32_t> indptr;
     std::vector<int32_t> indices;
@@ -148,25 +151,30 @@ public:
     std::vector<GDBTMeta> meta_holder[2];
 
     std::vector<uint64_t> forget_table;
-    GDBTTrainingData training_data;
+    GDBTTrainingData * training_data;
+    GDBTTrainingData * background_training_data;
 
     // sample_size
-    uint sample_rate = 32;
-    uint64_t current_rank_pos = 0;
-    uint64_t training_sample_interval = 1;
+    uint sample_rate = 64;
+    uint64_t training_sample_interval = 64;
 
     double training_loss = 0;
     uint64_t n_force_eviction = 0;
-    std::atomic_uint64_t t_counter = {0};
+
+    //mutex guarantee the concurrency control, so counter doesn't need to be atomic
+    std::mutex _mutex;
+    uint64_t t_counter = {0};
+
+    std::thread training_thread;
 
     BoosterHandle booster = nullptr;
 
     std::unordered_map<std::string, std::string> GDBT_train_params = {
             {"boosting",                   "gbdt"},
             {"objective",                  "regression"},
-            {"num_iterations",             "1"},
+            {"num_iterations",             "32"},
             {"num_leaves",                  "32"},
-            {"num_threads",                "1"},
+            {"num_threads",                "4"},
             {"shrinkage_rate",           "0.1"},
             {"feature_fraction",           "0.8"},
             {"bagging_freq",               "5"},
@@ -182,8 +190,25 @@ public:
     std::default_random_engine _generator = std::default_random_engine();
     std::uniform_int_distribution<std::size_t> _distribution = std::uniform_int_distribution<std::size_t>();
 
+
+    void async_training() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            if (training_data->labels.size() >= GDBT::batch_size) {
+                //assume back ground training data is already clear
+                _mutex.lock();
+                std::swap(training_data, background_training_data);
+                _mutex.unlock();
+                //todo: training...
+                background_training_data->clear();
+            }
+//            printf("async training\n");
+        }
+    }
+
     virtual void init(int64_t max_bytes) {
         VDiskCache::init(max_bytes);
+//        VDiskCache::init(1000000000);
         GDBT::s_forget_table = GDBT::forget_window+1;
         forget_table.resize(GDBT::s_forget_table);
         GDBT::max_n_past_distances = GDBT::max_n_past_timestamps-1;
@@ -198,7 +223,11 @@ public:
             GDBT::hash_edwt[i] = pow(0.5, i);
 
         //interval, distances, size, extra_features, n_past_intervals, edwt
+        GDBT::n_feature = GDBT::max_n_past_timestamps + 2 + GDBT::n_edwt_feature;
+        training_data = new GDBTTrainingData();
+        background_training_data = new GDBTTrainingData();
         GDBT_inference_params = GDBT_train_params;
+        training_thread = std::thread(&VDiskCacheGDBT::async_training, this);
     }
 
     void train() {
@@ -207,14 +236,16 @@ public:
             LGBM_BoosterFree(booster);
         // create training dataset
         DatasetHandle trainData;
+
+
         LGBM_DatasetCreateFromCSR(
-                static_cast<void *>(training_data.indptr.data()),
+                static_cast<void *>(training_data->indptr.data()),
                 C_API_DTYPE_INT32,
-                training_data.indices.data(),
-                static_cast<void *>(training_data.data.data()),
+                training_data->indices.data(),
+                static_cast<void *>(training_data->data.data()),
                 C_API_DTYPE_FLOAT64,
-                training_data.indptr.size(),
-                training_data.data.size(),
+                training_data->indptr.size(),
+                training_data->data.size(),
                 GDBT::n_feature,  //remove future t
                 GDBT_train_params,
                 nullptr,
@@ -222,8 +253,8 @@ public:
 
         LGBM_DatasetSetField(trainData,
                              "label",
-                             static_cast<void *>(training_data.labels.data()),
-                             training_data.labels.size(),
+                             static_cast<void *>(training_data->labels.data()),
+                             training_data->labels.size(),
                              C_API_DTYPE_FLOAT32);
 
         // init booster
@@ -238,15 +269,15 @@ public:
         }
 
         int64_t len;
-        std::vector<double > result(training_data.indptr.size()-1);
+        std::vector<double > result(training_data->indptr.size()-1);
         LGBM_BoosterPredictForCSR(booster,
-                                  static_cast<void *>(training_data.indptr.data()),
+                                  static_cast<void *>(training_data->indptr.data()),
                                   C_API_DTYPE_INT32,
-                                  training_data.indices.data(),
-                                  static_cast<void *>(training_data.data.data()),
+                                  training_data->indices.data(),
+                                  static_cast<void *>(training_data->data.data()),
                                   C_API_DTYPE_FLOAT64,
-                                  training_data.indptr.size(),
-                                  training_data.data.size(),
+                                  training_data->indptr.size(),
+                                  training_data->data.size(),
                                   GDBT::n_feature,  //remove future t
                                   C_API_PREDICT_NORMAL,
                                   0,
@@ -255,7 +286,7 @@ public:
                                   result.data());
         double se = 0;
         for (int i = 0; i < result.size(); ++i) {
-            auto diff = result[i] - training_data.labels[i];
+            auto diff = result[i] - training_data->labels[i];
             se += diff * diff;
         }
         training_loss = training_loss * 0.99 + se/GDBT::batch_size*0.01;
@@ -312,12 +343,7 @@ public:
                 uint64_t future_distance = GDBT::forget_window * 2;
                 for (auto & sample_time: meta._sample_times) {
                     //don't use label within the first forget window because the data is not static
-                    training_data.emplace_back(meta, sample_time, future_distance);
-                    //training
-                    if (training_data.labels.size() == GDBT::batch_size) {
-                        train();
-                        training_data.clear();
-                    }
+                    training_data->emplace_back(meta, sample_time, future_distance);
                 }
                 meta._sample_times.clear();
             }
@@ -340,105 +366,105 @@ public:
         }
     }
 
-    std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
-        //if not trained yet, use random
-        if (booster == nullptr) {
-            uint32_t rand_idx = current_rank_pos % meta_holder[0].size();
-            return {meta_holder[0][rand_idx]._key, rand_idx};
+std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
+    //todo: if not trained yet, use random
+    uint32_t rand_idx = _distribution(_generator) % meta_holder[0].size();
+//        if (booster == nullptr) {
+        return {meta_holder[0][rand_idx]._key, rand_idx};
+//        }
+
+    uint n_sample = std::min(sample_rate, (uint32_t) meta_holder[0].size());
+
+    std::vector<int32_t> indptr = {0};
+    std::vector<int32_t> indices;
+    std::vector<double> data;
+    std::vector<double> sizes;
+    std::vector<uint64_t > past_timestamps;
+
+    uint64_t counter = 0;
+    for (int i = 0; i < n_sample; i++) {
+        uint32_t pos = (i+rand_idx)%meta_holder[0].size();
+        auto & meta = meta_holder[0][pos];
+        //fill in past_interval
+        indices.push_back(0);
+        data.push_back(t - meta._past_timestamp);
+        ++counter;
+        past_timestamps.emplace_back(meta._past_timestamp);
+
+        uint8_t j = 0;
+        uint64_t this_past_distance = 0;
+        for (j = 0; j < meta._past_distance_idx && j < GDBT::max_n_past_distances; ++j) {
+            uint8_t past_distance_idx = (meta._past_distance_idx - 1 - j) % GDBT::max_n_past_distances;
+            uint64_t & past_distance = meta._past_distances[past_distance_idx];
+            this_past_distance += past_distance;
+            if (this_past_distance < GDBT::forget_window) {
+                indices.push_back(j+1);
+                data.push_back(past_distance);
+                ++counter;
+            } else
+                break;
         }
 
-        uint n_sample = std::min(sample_rate, (uint32_t) meta_holder[0].size());
-
-        std::vector<int32_t> indptr = {0};
-        std::vector<int32_t> indices;
-        std::vector<double> data;
-        std::vector<double> sizes;
-        std::vector<uint64_t > past_timestamps;
-
-        uint64_t counter = 0;
-        for (int i = 0; i < n_sample; i++) {
-            uint32_t pos = (i+current_rank_pos)%meta_holder[0].size();
-            auto & meta = meta_holder[0][pos];
-            //fill in past_interval
-            indices.push_back(0);
-            data.push_back(t - meta._past_timestamp);
-            ++counter;
-            past_timestamps.emplace_back(meta._past_timestamp);
-
-            uint8_t j = 0;
-            uint64_t this_past_distance = 0;
-            for (j = 0; j < meta._past_distance_idx && j < GDBT::max_n_past_distances; ++j) {
-                uint8_t past_distance_idx = (meta._past_distance_idx - 1 - j) % GDBT::max_n_past_distances;
-                uint64_t & past_distance = meta._past_distances[past_distance_idx];
-                this_past_distance += past_distance;
-                if (this_past_distance < GDBT::forget_window) {
-                    indices.push_back(j+1);
-                    data.push_back(past_distance);
-                    ++counter;
-                } else
-                    break;
-            }
-
-            indices.push_back(GDBT::max_n_past_timestamps);
-            data.push_back(meta._size);
-            sizes.push_back(meta._size);
-            ++counter;
+        indices.push_back(GDBT::max_n_past_timestamps);
+        data.push_back(meta._size);
+        sizes.push_back(meta._size);
+        ++counter;
 
 
-            indices.push_back(GDBT::max_n_past_timestamps+1);
-            data.push_back(j);
-            ++counter;
+        indices.push_back(GDBT::max_n_past_timestamps+1);
+        data.push_back(j);
+        ++counter;
 
-            for (uint8_t k = 0; k < GDBT::n_edwt_feature; ++k) {
-                indices.push_back(GDBT::max_n_past_timestamps + 2 + k);
-                uint32_t _distance_idx = std::min(uint32_t (t-meta._past_timestamp) / GDBT::edwt_windows[k],
-                                             GDBT::max_hash_edwt_idx);
-                data.push_back(meta._edwt[k]*GDBT::hash_edwt[_distance_idx]);
-            }
-            counter += GDBT::n_edwt_feature;
-
-            //remove future t
-            indptr.push_back(counter);
-
+        for (uint8_t k = 0; k < GDBT::n_edwt_feature; ++k) {
+            indices.push_back(GDBT::max_n_past_timestamps + 2 + k);
+            uint32_t _distance_idx = std::min(uint32_t (t-meta._past_timestamp) / GDBT::edwt_windows[k],
+                                         GDBT::max_hash_edwt_idx);
+            data.push_back(meta._edwt[k]*GDBT::hash_edwt[_distance_idx]);
         }
-        int64_t len;
-        std::vector<double> result(n_sample);
-        LGBM_BoosterPredictForCSR(booster,
-                                  static_cast<void *>(indptr.data()),
-                                  C_API_DTYPE_INT32,
-                                  indices.data(),
-                                  static_cast<void *>(data.data()),
-                                  C_API_DTYPE_FLOAT64,
-                                  indptr.size(),
-                                  data.size(),
-                                  GDBT::n_feature,  //remove future t
-                                  C_API_PREDICT_NORMAL,
-                                  0,
-                                  GDBT_inference_params,
-                                  &len,
-                                  result.data());
-        for (int i = 0; i < n_sample; ++i)
-            result[i] -= (t - past_timestamps[i]);
-        if (objective == object_hit_rate)
-            for (uint32_t i = 0; i < n_sample; ++i)
-                result[i] *= sizes[i];
+        counter += GDBT::n_edwt_feature;
 
-        double worst_score;
-        uint32_t worst_pos;
-        uint64_t min_past_timestamp;
+        //remove future t
+        indptr.push_back(counter);
 
-        for (int i = 0; i < n_sample; ++i)
-            if (!i || result[i] > worst_score || (result[i] == worst_score && (past_timestamps[i] < min_past_timestamp))) {
-                worst_score = result[i];
-                worst_pos = i;
-                min_past_timestamp = past_timestamps[i];
-            }
-        worst_pos = (worst_pos+current_rank_pos)%meta_holder[0].size();
-        auto & meta = meta_holder[0][worst_pos];
-        auto & worst_key = meta._key;
-        current_rank_pos += n_sample;
-        return {worst_key, worst_pos};
     }
+    int64_t len;
+    std::vector<double> result(n_sample);
+    LGBM_BoosterPredictForCSR(booster,
+                              static_cast<void *>(indptr.data()),
+                              C_API_DTYPE_INT32,
+                              indices.data(),
+                              static_cast<void *>(data.data()),
+                              C_API_DTYPE_FLOAT64,
+                              indptr.size(),
+                              data.size(),
+                              GDBT::n_feature,  //remove future t
+                              C_API_PREDICT_NORMAL,
+                              0,
+                              GDBT_inference_params,
+                              &len,
+                              result.data());
+    for (int i = 0; i < n_sample; ++i)
+        result[i] -= (t - past_timestamps[i]);
+    if (objective == object_hit_rate)
+        for (uint32_t i = 0; i < n_sample; ++i)
+            result[i] *= sizes[i];
+
+    double worst_score;
+    uint32_t worst_pos;
+    uint64_t min_past_timestamp;
+
+    for (int i = 0; i < n_sample; ++i)
+        if (!i || result[i] > worst_score || (result[i] == worst_score && (past_timestamps[i] < min_past_timestamp))) {
+            worst_score = result[i];
+            worst_pos = i;
+            min_past_timestamp = past_timestamps[i];
+        }
+    worst_pos = (worst_pos+rand_idx)%meta_holder[0].size();
+    auto & meta = meta_holder[0][worst_pos];
+    auto & worst_key = meta._key;
+
+    return {worst_key, worst_pos};
+}
 
     void evict(const uint64_t & t) {
         auto epair = rank(t);
@@ -464,82 +490,96 @@ public:
     }
 
     void admit(const CacheKey * _key, const int64_t & size) override {
-        //the logically time for this tx
-        uint64_t t = t_counter++;
-        if (!(t%1000000))
-            print_stats();
-
         const uint64_t & key = _key->b[0];
         uint64_t forget_key = key+1;
-        // object feasible to store?
-        if (size <= _cacheSize) {
-            auto it = key_map.find(key);
-            if (it == key_map.end()) {
-                //fresh insert
-                key_map.insert({key, {0, (uint32_t) meta_holder[0].size()}});
-                meta_holder[0].emplace_back(key, size, t);
-                _currentSize += size;
-                forget_table[(t + GDBT::forget_window) % GDBT::s_forget_table] = key + 1;
-                if (_currentSize <= _cacheSize)
-                    goto Lreturn;
-            } else if (!it->second.first) {
-                std::cerr<<"fatal: admitting object already in cache"<<std::endl;
-                //TODO: handle here
-//                abort();
-            } else if (size + _currentSize <= _cacheSize) {
-                //bring list 1 to list 0
-                //first move meta data, then modify hash table
-                uint32_t tail0_pos = meta_holder[0].size();
-                meta_holder[0].emplace_back(meta_holder[1][it->second.second]);
-                uint32_t tail1_pos = meta_holder[1].size() - 1;
-                if (it->second.second != tail1_pos) {
-                    //swap tail
-                    meta_holder[1][it->second.second] = meta_holder[1][tail1_pos];
-                    key_map.find(meta_holder[1][tail1_pos]._key)->second.second = it->second.second;
-                }
-                meta_holder[1].pop_back();
-                it->second = {0, tail0_pos};
-                _currentSize += size;
+        auto it = std::unordered_map<uint64_t, std::pair<bool, uint32_t>>::iterator();
+        auto time_begin = std::chrono::system_clock::now();
+        long time_elapsed;
+        if (size > _cacheSize)
+            goto Lhugeobj;
+        _mutex.lock();
+        time_begin = std::chrono::system_clock::now();
+
+        it = key_map.find(key);
+        if (it == key_map.end()) {
+            //fresh insert
+            key_map.insert({key, {0, (uint32_t) meta_holder[0].size()}});
+            meta_holder[0].emplace_back(key, size, t_counter);
+            _currentSize += size;
+            //the thing here shouldn't be 0
+            assert(!(forget_table[(t_counter + GDBT::forget_window)%GDBT::s_forget_table]));
+            forget_table[(t_counter + GDBT::forget_window) % GDBT::s_forget_table] = key + 1;
+            if (_currentSize <= _cacheSize)
                 goto Lreturn;
-            } else {
-                //insert-evict
-                auto epair = rank(t);
-                auto &key0 = epair.first;
-                auto &pos0 = epair.second;
-                auto &pos1 = it->second.second;
-                _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
-                std::swap(meta_holder[0][pos0], meta_holder[1][pos1]);
-                swap(it->second, key_map.find(key0)->second);
+        } else if (!it->second.first) {
+            //already in the cache
+            goto Lnoop;
+        } else if (size + _currentSize <= _cacheSize) {
+            //bring list 1 to list 0
+            //first move meta data, then modify hash table
+            uint32_t tail0_pos = meta_holder[0].size();
+            meta_holder[0].emplace_back(meta_holder[1][it->second.second]);
+            uint32_t tail1_pos = meta_holder[1].size() - 1;
+            if (it->second.second != tail1_pos) {
+                //swap tail
+                meta_holder[1][it->second.second] = meta_holder[1][tail1_pos];
+                key_map.find(meta_holder[1][tail1_pos]._key)->second.second = it->second.second;
             }
-            // check more eviction needed?
-            while (_currentSize > _cacheSize) {
-                evict(t);
-            }
+            meta_holder[1].pop_back();
+            it->second = {0, tail0_pos};
+            _currentSize += size;
+            goto Lreturn;
+        } else {
+            //insert-evict
+            auto epair = rank(t_counter);
+            auto &key0 = epair.first;
+            auto &pos0 = epair.second;
+            auto &pos1 = it->second.second;
+            _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
+            std::swap(meta_holder[0][pos0], meta_holder[1][pos1]);
+            swap(it->second, key_map.find(key0)->second);
+        }
+        // check more eviction needed?
+        while (_currentSize > _cacheSize) {
+            evict(t_counter);
         }
         Lreturn:
-            forget(t);
+            if (!(t_counter%10000))
+                print_stats();
+            forget(t_counter);
+            //sampling
+            if (!(t_counter % training_sample_interval))
+                sample(t_counter);
+            ++t_counter;
+        //no logical op is performed
+        Lnoop:
+            time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - time_begin).count();
+            printf("admit latency: %d\n", time_elapsed);
+            _mutex.unlock();
+        Lhugeobj:
+            return;
     }
 
     void print_stats() {
         std::cerr << "cache size: "<<_currentSize<<"/"<<_cacheSize<<std::endl;
         std::cerr << "n_metadata: "<<key_map.size()<<std::endl;
-        std::cerr << "n_training: "<<training_data.labels.size()<<std::endl;
+        std::cerr << "n_training: "<<training_data->labels.size()<<std::endl;
         std::cerr << "training loss: " << training_loss << std::endl;
         std::cerr << "n_force_eviction: " << n_force_eviction <<std::endl;
     }
 
     uint64_t lookup(const CacheKey * _key) override {
-        //the logically time for this tx
-        uint64_t t = t_counter++;
-        if (!(t%1000000))
-            print_stats();
-
         uint64_t ret = 0;
         const uint64_t &key = _key->b[0];
-
+        _mutex.lock();
+        auto time_begin = std::chrono::system_clock::now();
         //first update the metadata: insert/update, which can trigger pending data.mature
         auto it = key_map.find(key);
         if (it != key_map.end()) {
+            //the logically time for this tx
+            if (!(t_counter%10000))
+                print_stats();
+
             //update past timestamps
             bool &list_idx = it->second.first;
             uint32_t &pos_idx = it->second.second;
@@ -551,37 +591,50 @@ public:
             auto &forget_key = forget_table[forget_timestamp % GDBT::s_forget_table];
             //key never 0 because we want to use forget table 0 means None
             assert(forget_key);
+            auto time_begin1 = std::chrono::system_clock::now();
             //re-request
             if (!meta._sample_times.empty()) {
                 //mature
-                uint64_t future_distance = t - last_timestamp;
+                uint64_t future_distance = t_counter - last_timestamp;
+                printf("n samples: %d\n", meta._sample_times.size());
                 for (auto & sample_time: meta._sample_times) {
                     //don't use label within the first forget window because the data is not static
-                    training_data.emplace_back(meta, sample_time, future_distance);
+                    training_data->emplace_back(meta, sample_time, future_distance);
                     //training
-                    if (training_data.labels.size() == GDBT::batch_size) {
-                        train();
-                        training_data.clear();
-                    }
+//                    if (training_data->labels.size() == GDBT::batch_size) {
+//                        train();
+//                        training_data->clear();
+//                    }
                 }
                 meta._sample_times.clear();
             }
+            auto time_begin2 = std::chrono::system_clock::now();
             //remove this entry
             forget_table[forget_timestamp%GDBT::s_forget_table] = 0;
-            forget_table[(t+GDBT::forget_window)%GDBT::s_forget_table] = key+1;
+            forget_table[(t_counter+GDBT::forget_window)%GDBT::s_forget_table] = key+1;
 
             //make this update after update training, otherwise the last timestamp will change
-            meta.update(t);
+            meta.update(t_counter);
             //update forget_table
             if (!list_idx)
                 ret = meta._size;
-        } else {
-        }
 
-        forget(t);
-        //sampling
-        if (!(t % training_sample_interval))
-            sample(t);
+            forget(t_counter);
+            auto time_begin3 = std::chrono::system_clock::now();
+            //sampling
+            if (!(t_counter % training_sample_interval))
+                sample(t_counter);
+            ++t_counter;
+            auto time_end = std::chrono::system_clock::now();
+            auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(time_end - time_begin3).count();
+            auto time_elapsed1 = std::chrono::duration_cast<std::chrono::microseconds>(time_begin3 - time_begin2).count();
+            auto time_elapsed2 = std::chrono::duration_cast<std::chrono::microseconds>(time_begin2 - time_begin1).count();
+            auto time_elapsed3 = std::chrono::duration_cast<std::chrono::microseconds>(time_begin1 - time_begin).count();
+            printf("lookup latency: %d %d %d %d\n", time_elapsed3, time_elapsed2, time_elapsed1, time_elapsed);
+        } else {
+            //logical time won't progress as no state change in our system
+        }
+        _mutex.unlock();
         return ret;
     }
 

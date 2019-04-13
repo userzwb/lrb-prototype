@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Asssume not recompile, origin already running. Only change size
 
-algs=(static lru)
-#algs=(fifo)
+#algs=(static lru)
+#algs=(lru)
+algs=(fifo)
 #alg=gbdt
 # for debug
 #u=k
@@ -21,6 +22,8 @@ for s in "${sizes[@]}"; do
 	    alg_idx=1
 	elif [[ ${alg} = "static" ]]; then
 		alg_idx=2
+	elif [[ ${alg} = "fifo" ]]; then
+		alg_idx=-1
 	else
 	    echo "error: algorithm ${alg} not found"
 	    return -1
