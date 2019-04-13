@@ -4,6 +4,7 @@
 
 #include "P_VDiskCache.h"
 #include <mutex>
+#include <chrono>
 
 typedef std::list<uint64_t >::iterator ListIteratorType;
 typedef std::unordered_map<uint64_t , ListIteratorType> lruCacheMapType;
@@ -16,6 +17,7 @@ public:
     lruCacheMapType _cacheMap;
     std::unordered_map<uint64_t , int64_t > _size_map;
     std::mutex _mutex;
+    std::atomic_uint64_t t_counter = {0};
 
     void admit(const CacheKey * _key, const int64_t & size) override {
         _mutex.lock();
@@ -44,7 +46,7 @@ public:
 
     void evict() {
         // evict least popular (i.e. last element)
-        if (_cacheList.size() > 0) {
+        if (!_cacheList.empty()) {
             ListIteratorType lit = _cacheList.end();
             lit--;
             uint64_t obj = *lit;
@@ -62,6 +64,10 @@ public:
 
     uint64_t lookup(const CacheKey * _key) override {
         _mutex.lock();
+        uint64_t t = t_counter++;
+        if (!(t%1000000)) {
+            std::cerr << "cache size: " << _currentSize << "/" << _cacheSize << std::endl;
+        }
         const uint64_t & obj = _key->b[0];
         auto it = _cacheMap.find(obj);
         uint64_t ret = 0;
