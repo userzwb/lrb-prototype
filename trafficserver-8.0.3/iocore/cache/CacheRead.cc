@@ -178,16 +178,16 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
             dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
       }
     }
+    if (!vdir_value_len) {
+        //always miss if the object not in virtual disk
+        goto Lmiss;
+    }
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
         c->dir = c->first_dir = result;
         c->last_collision     = last_collision;
       return &c->_action;
-    }
-    if (!vdir_value_len) {
-      //always miss if the object not in virtual disk
-      goto Lmiss;
     }
     if (c->od) {
       goto Lwriter;
