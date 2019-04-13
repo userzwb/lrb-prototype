@@ -26,11 +26,13 @@ public:
 //        usleep(1000000);
 //        printf("lookup concurrency counter: %d\n", n_concurrent);
 //        --concurrent_counter;
-        //give it 25% miss rate, according to GBDT hit rate from wiki
-        if (!(_key->b[0]%4))
+        //give it 33% miss rate, according to GBDT hit rate from wiki
+        if (!(_key->b[0]%3))
             return 0;
-        //average size is 129k
-        return 129000;
+        //average size is 33k
+        return _key->b[0] & 66000ull;
+//        return 33000;
+//        return 4000;
     }
 };
 
