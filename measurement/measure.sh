@@ -22,6 +22,8 @@ for s in "${sizes[@]}"; do
 	    alg_idx=1
 	elif [[ ${alg} = "static" ]]; then
 		alg_idx=2
+	elif [[ ${alg} = "random" ]]; then
+		alg_idx=3
 	elif [[ ${alg} = "fifo" ]]; then
 		alg_idx=-1
 	else

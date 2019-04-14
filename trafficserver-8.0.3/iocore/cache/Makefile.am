@@ -63,7 +63,8 @@ libinkcache_a_SOURCES = \
 	P_VDiskCache.h \
 	VDiskCacheLRU.cc \
 	VDiskCacheGDBT.cc \
-	VDiskCacheStatic.cc
+	VDiskCacheStatic.cc \
+	VDiskCacheRandom.cc
 
 if BUILD_TESTS
 libinkcache_a_SOURCES += \

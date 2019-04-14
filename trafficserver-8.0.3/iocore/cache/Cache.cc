@@ -928,16 +928,21 @@ CacheProcessor::cacheInitialized()
           break;
         }
         switch (cache_config_vdisk_cache_algorithm) {
-        default:
-        case VDISK_CACHE_ALGORITHM_GDBT:
-          gvol[i]->vdisk_cache = new_VdiskCacheGDBT();
-          break;
-        case VDISK_CACHE_ALGORITHM_LRU:
-          gvol[i]->vdisk_cache = new_VdiskCacheLRU();
-          break;
-        case VDISK_CACHE_ALGORITHM_STATIC:
-            gvol[i]->vdisk_cache = new_VdiskCacheStatic();
-            break;
+            case VDISK_CACHE_ALGORITHM_GDBT:
+              gvol[i]->vdisk_cache = new_VdiskCacheGDBT();
+              break;
+            case VDISK_CACHE_ALGORITHM_LRU:
+              gvol[i]->vdisk_cache = new_VdiskCacheLRU();
+              break;
+            case VDISK_CACHE_ALGORITHM_STATIC:
+                gvol[i]->vdisk_cache = new_VdiskCacheStatic();
+                break;
+            case VDISK_CACHE_ALGORITHM_RANDOM:
+                gvol[i]->vdisk_cache = new_VdiskCacheRandom();
+                break;
+            default:
+                printf("error: unknown vdisk cache algorithm\n");
+                abort();
         }
       }
       // let us calculate the Size

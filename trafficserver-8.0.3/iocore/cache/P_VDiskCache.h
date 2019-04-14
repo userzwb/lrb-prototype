@@ -28,5 +28,6 @@ public:
 VDiskCache *new_VdiskCacheLRU();
 VDiskCache *new_VdiskCacheGDBT();
 VDiskCache *new_VdiskCacheStatic();
+VDiskCache *new_VdiskCacheRandom();
 
 #endif //WEBTRACEREPLAY_P_VDISKCACHE_H

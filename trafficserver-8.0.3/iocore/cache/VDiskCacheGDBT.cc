@@ -147,10 +147,9 @@ public:
 };
 
 
-struct KeyIndexT {
+struct KeyMapEntryT {
     unsigned int list_idx: 1;
     unsigned int list_pos: 31;
-    unsigned int size: 32;
 };
 
 struct OpT {
@@ -162,7 +161,11 @@ struct OpT {
 class VDiskCacheGDBT: public VDiskCache{
 public:
     //key -> (0/1 list, idx)
-    std::unordered_map<uint64_t, KeyIndexT> key_map;
+    std::unordered_map<uint64_t, KeyMapEntryT> key_map;
+    //size map is exposed to get/put function
+    std::unordered_map<uint64_t, uint32_t> size_map;
+    std::shared_mutex size_map_mutex;
+
     std::vector<GDBTMeta> meta_holder[2];
 
     std::vector<uint64_t> forget_table;
@@ -177,7 +180,6 @@ public:
     uint64_t n_force_eviction = 0;
 
     //mutex guarantee the concurrency control, so counter doesn't need to be atomic
-    std::shared_mutex map_mutex;
     uint64_t t_counter = 0;
 
     //op queue
@@ -391,7 +393,6 @@ public:
         auto & _forget_key = forget_table[t%GDBT::s_forget_table];
         if (_forget_key) {
             auto key = _forget_key - 1;
-            map_mutex.lock();
             auto meta_it = key_map.find(key);
             auto pos = meta_it->second.list_pos;
             bool meta_id = meta_it->second.list_idx;
@@ -422,7 +423,6 @@ public:
             }
             meta_holder[meta_id].pop_back();
             key_map.erase(key);
-            map_mutex.unlock();
             forget_table[t%GDBT::s_forget_table] = 0;
         }
     }
@@ -532,6 +532,10 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
         uint64_t & key = epair.first;
         uint32_t & old_pos = epair.second;
 
+        size_map_mutex.lock();
+        size_map.erase(key);
+        size_map_mutex.unlock();
+
         //bring list 0 to list 1
         uint32_t new_pos = meta_holder[1].size();
 
@@ -540,17 +544,13 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
         if (old_pos !=  activate_tail_idx) {
             //move tail
             meta_holder[0][old_pos] = meta_holder[0][activate_tail_idx];
-            map_mutex.lock();
             key_map.find(meta_holder[0][activate_tail_idx]._key)->second.list_pos = old_pos;
-            map_mutex.unlock();
         }
         meta_holder[0].pop_back();
 
-        map_mutex.lock();
         auto it = key_map.find(key);
         it->second.list_idx = 1;
         it->second.list_pos = new_pos;
-        map_mutex.unlock();
         _currentSize -= meta_holder[1][new_pos]._size;
     }
 
@@ -560,17 +560,16 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
         if (size > _cacheSize)
             return;
 //        auto time_begin = std::chrono::system_clock::now();
-        map_mutex.lock_shared();
-
-        auto it = key_map.find(key);
-        if (it == key_map.end()) {
-            //fresh insert
-            map_mutex.unlock_shared();
+        size_map_mutex.lock_shared();
+        auto it = size_map.find(key);
+        if (it == size_map.end()) {
+            size_map_mutex.unlock_shared();
             op_queue_mutex.lock();
             op_queue.push(OpT{.key=key, .size=size});
             op_queue_mutex.unlock();
         } else {
-            map_mutex.unlock_shared();
+            //already inserted
+            size_map_mutex.unlock_shared();
         }
 //        auto time_end = std::chrono::system_clock::now();
 //        auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(time_end - time_begin).count();
@@ -580,25 +579,18 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
     uint64_t lookup(const CacheKey * _key) override {
         uint64_t ret = 0;
         const uint64_t &key = _key->b[0];
-//        auto time_begin = std::chrono::system_clock::now();
 
-        map_mutex.lock_shared();
-        auto it = key_map.find(key);
-        if (it != key_map.end()) {
-            if (!(it->second.list_idx)) {
-                ret = it->second.size;
-            }
-            map_mutex.unlock_shared();
+        size_map_mutex.lock_shared();
+        auto it = size_map.find(key);
+        if (it != size_map.end()) {
+            ret = it->second;
+            size_map_mutex.unlock_shared();
             op_queue_mutex.lock();
             op_queue.push(OpT{.key=key, .size=-1});
             op_queue_mutex.unlock();
         } else {
-            map_mutex.unlock_shared();
+            size_map_mutex.unlock_shared();
         }
-//        auto time_end = std::chrono::system_clock::now();
-//        auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(time_end - time_begin).count();
-//        printf("lookup latency: %d\n", time_elapsed);
-//        return 4000;
         return ret;
     }
 
@@ -607,13 +599,14 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
 //        auto time_begin = std::chrono::system_clock::now();
 //        long time_elapsed;
 //        time_begin = std::chrono::system_clock::now();
-        map_mutex.lock();
 
         auto it = key_map.find(key);
         if (it == key_map.end()) {
             //fresh insert
-            key_map.insert({key, KeyIndexT{.list_idx=0, .list_pos = (uint32_t) meta_holder[0].size(), .size= (uint32_t) size}});
-            map_mutex.unlock();
+            key_map.insert({key, KeyMapEntryT{.list_idx=0, .list_pos = (uint32_t) meta_holder[0].size()}});
+            size_map_mutex.lock();
+            size_map.insert({key, size});
+            size_map_mutex.unlock();
 
             meta_holder[0].emplace_back(key, size, t_counter);
             _currentSize += size;
@@ -623,7 +616,6 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
             if (_currentSize <= _cacheSize)
                 goto Lreturn;
         } else if (!it->second.list_idx) {
-            map_mutex.unlock();
             //already in the cache
             goto Lnoop;
         } else if (size + _currentSize <= _cacheSize) {
@@ -639,7 +631,9 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
             }
             meta_holder[1].pop_back();
             it->second = {0, tail0_pos};
-            map_mutex.unlock();
+            size_map_mutex.lock();
+            size_map.insert({key, size});
+            size_map_mutex.unlock();
             _currentSize += size;
             goto Lreturn;
         } else {
@@ -647,10 +641,13 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
             auto epair = rank(t_counter);
             auto &key0 = epair.first;
             auto &pos0 = epair.second;
+            size_map_mutex.lock();
+            size_map.erase(key0);
+            size_map.insert({key, size});
+            size_map_mutex.unlock();
             _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
             std::swap(meta_holder[0][pos0], meta_holder[1][it->second.list_pos]);
             std::swap(it->second, key_map.find(key0)->second);
-            map_mutex.unlock();
         }
         // check more eviction needed?
         while (_currentSize > _cacheSize) {
@@ -672,11 +669,9 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
     void _lookup(const uint64_t & key) {
 //        auto time_begin = std::chrono::system_clock::now();
         //first update the metadata: insert/update, which can trigger pending data.mature
-        map_mutex.lock_shared();
         auto it = key_map.find(key);
         if (it != key_map.end()) {
-            KeyIndexT key_idx = it->second;
-            map_mutex.unlock_shared();
+            KeyMapEntryT key_idx = it->second;
             //update past timestamps
             GDBTMeta &meta = meta_holder[key_idx.list_idx][key_idx.list_pos];
             assert(meta._key == key);
@@ -721,10 +716,8 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
 //            printf("lookup latency: %d %d %d %d\n", time_elapsed3, time_elapsed2, time_elapsed1, time_elapsed);
         } else {
             //logical time won't progress as no state change in our system
-            map_mutex.unlock_shared();
         }
     }
-
 
 };
 
