@@ -30,7 +30,7 @@
 cmake_minimum_required(VERSION 3.7)
 project(ats)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 
 find_library(LIGHTGBM_LIB lib_lightgbm.so)
