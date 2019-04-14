@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Asssume not recompile, origin already running. Only change size
 
-#algs=(static lru)
-#algs=(lru)
-algs=(fifo)
-#alg=gbdt
+# algs: fifo lru static random gbdt
+algs=(random gbdt)
 # for debug
 #u=k
 # for dev
@@ -16,7 +14,7 @@ n_client=256
 for alg in "${algs[@]}"; do
 for s in "${sizes[@]}"; do
 	#modify size
-	if [[ ${alg} = "gdbt" ]]; then
+	if [[ ${alg} = "gbdt" ]]; then
 		alg_idx=0
 	elif [[ ${alg} = "lru" ]]; then
 	    alg_idx=1
@@ -36,7 +34,7 @@ for s in "${sizes[@]}"; do
 	ssh cache_proxy "/opt/ts/bin/trafficserver restart"
 
 	# warmup
-	ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_00.tr ${n_client} n01:6000/ throughput.log latency.log 0"
+	ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${u}_${alg}_${s}.log log/warmup_latency_${u}_${alg}_${s}.log 0"
 	sleep 15  #for sync
 	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > byte_miss_${u}_${alg}_${s}.log
 	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${u}_${alg}_${s}.log
