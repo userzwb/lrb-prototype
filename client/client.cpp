@@ -142,11 +142,12 @@ int requestCreate(){
   uint64_t length;
   while (infile >> time >> id >> length) {
     if(urlQueue.size()>1000000) {
-        if (mean) {
-            cerr << "more than 1 million requests queuing, stop the client" << endl;
-            return 0;
-        } else
-            this_thread::sleep_for (chrono::milliseconds(10));
+//        if (mean) {
+//            cerr << "more than 1 million requests queuing, stop the client" << endl;
+//            return 0;
+//        } else
+        //allow queuing so much
+        this_thread::sleep_for (chrono::milliseconds(10));
     }
     if (mean) {
         auto t_sleep = distribution(generator);
