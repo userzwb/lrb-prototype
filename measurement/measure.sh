@@ -10,10 +10,13 @@ u=k
 
 sizes=(128G)
 n_client=256
+#means 300 ~= 2600 reqs/s
+means=(0 300)
 
 for alg in "${algs[@]}"; do
 for s in "${sizes[@]}"; do
-	suffix=${u}_${alg}_${s}
+for m in "${means[@]}"; do
+	suffix=${u}_${alg}_${s}_${m}
 	#modify size
 	if [[ ${alg} = "gbdt" ]]; then
 		alg_idx=0
@@ -49,11 +52,12 @@ for s in "${sizes[@]}"; do
 	ssh cache_proxy 'cd ~/webtracereplay; top -b -d 10 -p $(/usr/sbin/pidof traffic_server)|grep --line-buffered zhenyus > ' "log/top_${suffix}.log &"
 
 	## echo $n_client
-    ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log 0"
+    ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log ${m}"
     sleep 15  #for sync
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${suffix}.log
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
     date +%s >> date_${suffix}.log
+done
 done
 done
 
