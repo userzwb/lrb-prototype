@@ -41,7 +41,7 @@ for m in "${means[@]}"; do
 	ssh cache_proxy 'cd ~/webtracereplay; top -b -d 10 -p $(/usr/sbin/pidof traffic_server)|grep --line-buffered zhenyus > ' "log/warmup_top_${suffix}.log &"
 
 	# warmup
-	ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${suffix}.log log/warmup_latency_${suffix}.log 0"
+	ssh cache_client "cd ~/webtracereplay; ./client/client client_400${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${suffix}.log log/warmup_latency_${suffix}.log 0"
 	sleep 15  #for sync
 	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > byte_miss_${suffix}.log
 	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${suffix}.log
@@ -52,7 +52,7 @@ for m in "${means[@]}"; do
 	ssh cache_proxy 'cd ~/webtracereplay; top -b -d 10 -p $(/usr/sbin/pidof traffic_server)|grep --line-buffered zhenyus > ' "log/top_${suffix}.log &"
 
 	## echo $n_client
-    ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log ${m}"
+    ssh cache_client "cd ~/webtracereplay; ./client/client client_400${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log ${m}"
     sleep 15  #for sync
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${suffix}.log
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
