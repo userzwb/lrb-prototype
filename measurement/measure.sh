@@ -2,17 +2,18 @@
 # Asssume not recompile, origin already running. Only change size
 
 # algs: fifo lru static random gbdt
-algs=(random gbdt)
+algs=(fifo)
 # for debug
-#u=k
+u=k
 # for dev
-u=m
+#u=m
 
 sizes=(128G)
 n_client=256
 
 for alg in "${algs[@]}"; do
 for s in "${sizes[@]}"; do
+	suffix=${u}_${alg}_${s}
 	#modify size
 	if [[ ${alg} = "gbdt" ]]; then
 		alg_idx=0
@@ -33,22 +34,29 @@ for s in "${sizes[@]}"; do
 	#restart
 	ssh cache_proxy "/opt/ts/bin/trafficserver restart"
 
+	#measure cpu and memory
+	ssh cache_proxy 'cd ~/webtracereplay; top -b -d 10 -p $(/usr/sbin/pidof traffic_server)|grep --line-buffered zhenyus > ' "log/warmup_top_${suffix}.log &"
+
 	# warmup
-	ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${u}_${alg}_${s}.log log/warmup_latency_${u}_${alg}_${s}.log 0"
+	ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${suffix}.log log/warmup_latency_${suffix}.log 0"
 	sleep 15  #for sync
-	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > byte_miss_${u}_${alg}_${s}.log
-	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${u}_${alg}_${s}.log
-	date +%s > date_${u}_${alg}_${s}.log
+	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > byte_miss_${suffix}.log
+	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${suffix}.log
+	date +%s > date_${suffix}.log
+	ssh cache_proxy 'pkill -f top'
+
+	#measure cpu and memory
+	ssh cache_proxy 'cd ~/webtracereplay; top -b -d 10 -p $(/usr/sbin/pidof traffic_server)|grep --line-buffered zhenyus > ' "log/top_${suffix}.log &"
 
 	## echo $n_client
-    ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_01.tr ${n_client} n01:6000/ log/throughput_${u}_${alg}_${s}.log log/latency_${u}_${alg}_${s}.log 0"
+    ssh cache_client "cd ~/webtracereplay; ./client/client client_200${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log 0"
     sleep 15  #for sync
-    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${u}_${alg}_${s}.log
-    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${u}_${alg}_${s}.log
-    date +%s >> date_${u}_${alg}_${s}.log
+    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${suffix}.log
+    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
+    date +%s >> date_${suffix}.log
 done
 done
 
 #download
-scp cache_client:~/webtracereplay/log/* .
-scp ./* fat:~/webcachesim/ats_log/
+scp cache_client:~/webtracereplay/log/* ./log/
+scp ./log/* fat:~/webcachesim/ats_log/
