@@ -4,9 +4,9 @@
 # algs: fifo lru static random gbdt
 algs=(fifo)
 # for debug
-u=k
+#u=k
 # for dev
-#u=m
+u=m
 
 sizes=(128G)
 n_client=256
@@ -57,6 +57,7 @@ for m in "${means[@]}"; do
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${suffix}.log
     ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
     date +%s >> date_${suffix}.log
+	ssh cache_proxy 'pkill -f top'
 done
 done
 done

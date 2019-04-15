@@ -15,7 +15,7 @@ sudo apt install autoconf automake autotools-dev bison debhelper dh-apparmor fle
 # clone traffic server and 
 git clone https://git-wip-us.apache.org/repos/asf/trafficserver.git
 
-# make origin.tr: cat wc400m.tr |awk -F' ' '{print $2, $3}'|sort -n|uniq > origin_400m.tr
+# make origin.tr: cat wc400m.tr |awk -F' ' '{size[$2]=$3}END{for (k in size){print k,size[k]}}'|sort -n > origin_400m.tr
 # make client.tr: cat wc400m.tr |awk -F' ' '{print $1,$2,$3}' > client_400m.tr
 
 cd trafficserver
