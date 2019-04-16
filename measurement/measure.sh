@@ -4,7 +4,7 @@
 # algs: fifo lru static random gbdt
 algs=(fifo)
 # for debug
-#u=k
+# u=k
 # for dev
 u=m
 
@@ -43,9 +43,9 @@ for m in "${means[@]}"; do
 	# warmup
 	ssh cache_client "cd ~/webtracereplay; ./client/client client_400${u}_00.tr ${n_client} n01:6000/ log/warmup_throughput_${suffix}.log log/warmup_latency_${suffix}.log 0"
 	sleep 15  #for sync
-	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > byte_miss_${suffix}.log
-	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${suffix}.log
-	date +%s > date_${suffix}.log
+	ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" > log/byte_miss_${suffix}.log
+	#ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" > byte_${suffix}.log
+	#date +%sdd > log/date_${suffix}.log
 	ssh cache_proxy 'pkill -f top'
 
 	#measure cpu and memory
@@ -54,9 +54,9 @@ for m in "${means[@]}"; do
 	## echo $n_client
     ssh cache_client "cd ~/webtracereplay; ./client/client client_400${u}_01.tr ${n_client} n01:6000/ log/throughput_${suffix}.log log/latency_${suffix}.log ${m}"
     sleep 15  #for sync
-    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> byte_miss_${suffix}.log
-    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
-    date +%s >> date_${suffix}.log
+    ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes" >> log/byte_miss_${suffix}.log
+    #ssh cache_proxy "/opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_bytes" >> byte_${suffix}.log
+    #date +%s >> date_${suffix}.log
 	ssh cache_proxy 'pkill -f top'
 done
 done
