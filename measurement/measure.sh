@@ -12,7 +12,7 @@ sizes=(128G)
 n_client=256
 #means 300 ~= 2600 reqs/s
 means=(0)
-version=fix_forget
+version=size0
 
 for alg in "${algs[@]}"; do
 for s in "${sizes[@]}"; do

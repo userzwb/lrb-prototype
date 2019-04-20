@@ -623,7 +623,7 @@ void evict(const uint32_t & t) {
     uint32_t & old_pos = epair.second;
 
     size_map_mutex.lock();
-    size_map.erase(key);
+    size_map.find(key)->second = 0;
     size_map_mutex.unlock();
 
     //bring list 0 to list 1
@@ -652,7 +652,7 @@ void admit(const CacheKey * _key, const int64_t & size) override {
 //        auto time_begin = std::chrono::system_clock::now();
     size_map_mutex.lock_shared();
     auto it = size_map.find(key);
-    if (it == size_map.end()) {
+    if (it == size_map.end() || !(it->second)) {
         size_map_mutex.unlock_shared();
         op_queue_mutex.lock();
         op_queue.push(OpT{.key=key, .size=size});
@@ -719,7 +719,7 @@ void _admit(const uint64_t & key, const uint32_t size) {
         meta_holder[1].pop_back();
         it->second = {0, tail0_pos};
         size_map_mutex.lock();
-        size_map.insert({key, size});
+        size_map.find(key)->second = size;
         size_map_mutex.unlock();
         _currentSize += size;
         goto Lreturn;
@@ -729,8 +729,8 @@ void _admit(const uint64_t & key, const uint32_t size) {
         auto &key0 = epair.first;
         auto &pos0 = epair.second;
         size_map_mutex.lock();
-        size_map.erase(key0);
-        size_map.insert({key, size});
+        size_map.find(key0)->second = 0;
+        size_map.find(key)->second = size;
         size_map_mutex.unlock();
         _currentSize = _currentSize - meta_holder[0][pos0]._size + size;
         std::swap(meta_holder[0][pos0], meta_holder[1][it->second.list_pos]);
