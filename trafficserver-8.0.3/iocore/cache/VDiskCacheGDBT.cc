@@ -490,6 +490,9 @@ void forget(uint32_t &t) {
         }
         meta_holder[meta_id].pop_back();
         key_map.erase(key);
+        size_map_mutex.lock();
+        size_map.erase(key);
+        size_map_mutex.unlock();
         forget_table[t%GDBT::s_forget_table] = 0;
     }
 }

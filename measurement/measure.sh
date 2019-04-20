@@ -2,7 +2,7 @@
 # Asssume not recompile, origin already running. Only change size
 
 # algs: fifo lru static random gbdt
-algs=(fifo)
+algs=(gbdt)
 # for debug
 # u=k
 # for dev
@@ -11,12 +11,13 @@ u=m
 sizes=(128G)
 n_client=256
 #means 300 ~= 2600 reqs/s
-means=(0 300)
+means=(0)
+version=fix_forget
 
 for alg in "${algs[@]}"; do
 for s in "${sizes[@]}"; do
 for m in "${means[@]}"; do
-	suffix=${u}_${alg}_${s}_${m}
+	suffix=${u}_${alg}_${s}_${m}_${version}
 	#modify size
 	if [[ ${alg} = "gbdt" ]]; then
 		alg_idx=0
