@@ -112,32 +112,17 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //zhenyus: does this lock the volume?
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
-    bool flag = !lock.is_locked();
+
     uint64_t vdir_value_len = vol->vdisk_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
-    if (!flag) {
-//      od = vol->open_read(key);
-//      if (od) {
-//        flag = true;
-//      } else {
-      //zhenyu: here get the Dir
-        flag = dir_probe(key, vol, &result, &last_collision);
-//      }
+    if (!lock.is_locked()) {
+        dir_probe(key, vol, &result, &last_collision);
     }
-//    uint64_t _dir_offset = dir_offset(&result);
-//    uint32_t _dir_big = dir_big(&result);
-//    uint32_t _dir_size = dir_size(&result);
-//    uint32_t _dir_tag = dir_tag(&result);
-//    uint32_t _dir_phase = dir_phase(&result);
-//    uint32_t _dir_head = dir_head(&result);
-//    uint32_t _dir_pinned = dir_pinned(&result);
-//    uint32_t _dir_token = dir_token(&result);
-//    uint16_t _dir_next = dir_next(&result);
-//    uint32_t _dir_offset_high = result.w[4];
-
+    if (!vdir_value_len)
+        goto Lmiss;
 
     //create the read only when key in virtual disk
-    if (vdir_value_len || flag) {
+    if (vdir_value_len) {
       c            = new_CacheVC(cont);
       c->first_key = c->key = c->earliest_key = *key;
       c->first_key_value_len = vdir_value_len;
@@ -177,10 +162,6 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         if (dir_approx_size(&result) < VDOC_HEADER_LEN)
             dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
       }
-    }
-    if (!vdir_value_len) {
-        //always miss if the object not in virtual disk
-        goto Lmiss;
     }
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
