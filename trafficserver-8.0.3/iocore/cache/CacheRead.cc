@@ -1241,15 +1241,45 @@ CacheVC::openReadStartHead(int event, Event *e)
       SET_HANDLER(&CacheVC::openReadFromWriter);
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
-//    if (dir_probe(&key, vol, &dir, &last_collision)) {
-//      first_dir = dir;
+    dir_probe(&key, vol, &dir, &last_collision);
+    uint64_t vdir_value_len = vol->vdisk_cache->lookup(&key);
+    if (vdir_value_len) {
+      first_dir = dir;
+      first_key_value_len = vdir_value_len;
+
+        if (!dir.w[0] && !dir.w[1] && !dir.w[2] && !dir.w[3] && !dir.w[4]) {
+//        empty.
+            //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
+            //zhenyu: this offset's unit is block
+            uint64_t aio_offset = (key.b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
+//        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
+            dir_set_offset(&dir, aio_offset);
+            //the normal offset
+//        dir_set_offset(&result, 1);
+            dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
+//        dir_set_big(&result, 0);
+//        dir_set_size(&result, 7);
+            //these I just leave unchanged as the first req of wiki
+            dir_set_tag(&dir, 3978);
+            dir_set_phase(&dir, 0);
+            dir_set_head(&dir, 1);
+            dir_set_pinned(&dir, 0);
+            dir_set_token(&dir, 0);
+            dir_set_next(&dir, 0);
+        } else {
+            //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
+//        c->od        = od;
+            //if the dir is crashed
+            if (dir_approx_size(&dir) < VDOC_HEADER_LEN)
+                dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
+        }
     //zhenyu: always do read
       int ret  = do_read_call(&key);
       if (ret == EVENT_RETURN) {
         goto Lcallreturn;
       }
       return ret;
-//    }
+    }
   }
 #pragma clang diagnostic pop
 Ldone:
