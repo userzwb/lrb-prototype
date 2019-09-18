@@ -66,7 +66,7 @@
 #define DOC_MAGIC ((uint32_t)0x5F129B13)
 #define DOC_CORRUPT ((uint32_t)0xDEADBABE)
 #define DOC_NO_CHECKSUM ((uint32_t)0xA0B0C0D0)
-#define VDOC_HEADER_LEN 2320
+#define VDOC_HEADER_LEN 2336
 
 struct Cache;
 struct Vol;
