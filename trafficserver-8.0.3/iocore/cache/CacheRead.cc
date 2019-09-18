@@ -107,72 +107,78 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
   ProxyMutex *mutex = cont->mutex.get();
   OpenDirEntry *od  = nullptr;
   CacheVC *c        = nullptr;
+  uint64_t vdir_value_len = 0;
 
   {
       //zhenyus: does this lock the volume?
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
 
-    uint64_t vdir_value_len = vol->vdisk_cache->lookup(key);
     //zhenyu: need to in vdisk in order to be probe
-    if (!lock.is_locked()) {
-        dir_probe(key, vol, &result, &last_collision);
-    }
-    if (!vdir_value_len)
-        goto Lmiss;
-
+    //assume od always return null
+    //check whether the thread itself holds the lock
     //create the read only when key in virtual disk
-    if (vdir_value_len) {
-      c            = new_CacheVC(cont);
-      c->first_key = c->key = c->earliest_key = *key;
-      c->first_key_value_len = vdir_value_len;
-      c->vol                                  = vol;
-      c->vio.op                               = VIO::READ;
-      c->base_stat                            = cache_read_active_stat;
-      CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
-      c->request.copy_shallow(request);
-      c->frag_type = CACHE_FRAG_TYPE_HTTP;
-      c->params    = params;
+    if (lock.is_locked()) {
+        dir_probe(key, vol, &result, &last_collision);
+        vdir_value_len = vol->vdisk_cache->lookup(key);
+    }
+    if (!lock.is_locked() || vdir_value_len) {
+        c = new_CacheVC(cont);
+        c->first_key = c->key = c->earliest_key = *key;
+        c->vol = vol;
+        c->vio.op = VIO::READ;
+        c->base_stat = cache_read_active_stat;
+        CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
+        c->request.copy_shallow(request);
+        c->frag_type = CACHE_FRAG_TYPE_HTTP;
+        c->params = params;
+        c->od = nullptr;
+        if (lock.is_locked()) {
+            c->first_key_value_len = vdir_value_len;
 
-      if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
+            if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
 //        empty.
-        //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
-        //zhenyu: this offset's unit is block
-        uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull)>>CACHE_BLOCK_SHIFT;
+                //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
+                //zhenyu: this offset's unit is block
+                uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
-        dir_set_offset(&result, aio_offset);
-        //the normal offset
+                dir_set_offset(&result, aio_offset);
+                //the normal offset
 //        dir_set_offset(&result, 1);
-        dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
+                dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
-        //these I just leave unchanged as the first req of wiki
-        dir_set_tag(&result, 3978);
-        dir_set_phase(&result, 0);
-        dir_set_head(&result, 1);
-        dir_set_pinned(&result, 0);
-        dir_set_token(&result, 0);
-        dir_set_next(&result, 0);
-        c->od        = nullptr;
-      } else {
-        //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
-          c->od        = nullptr;
+                //these I just leave unchanged as the first req of wiki
+                dir_set_tag(&result, 3978);
+                dir_set_phase(&result, 0);
+                dir_set_head(&result, 1);
+                dir_set_pinned(&result, 0);
+                dir_set_token(&result, 0);
+                dir_set_next(&result, 0);
+            } else {
+                //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
 //        c->od        = od;
-        //if the dir is crashed
-        if (dir_approx_size(&result) < VDOC_HEADER_LEN)
-            dir_set_approx_size(&result, vdir_value_len+VDOC_HEADER_LEN);
-      }
+                //if the dir is crashed
+                if (dir_approx_size(&result) < VDOC_HEADER_LEN)
+                    dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
+            }
+        }
     }
+
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
-        c->dir = c->first_dir = result;
-        c->last_collision     = last_collision;
       return &c->_action;
     }
+
+    if (!c) {
+        goto Lmiss;
+    }
+
     if (c->od) {
       goto Lwriter;
     }
+
     // hit
     c->dir = c->first_dir = result;
     c->last_collision     = last_collision;
