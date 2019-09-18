@@ -145,8 +145,8 @@ public:
         }
     }
 
-    virtual void init(int64_t max_bytes) {
-        VDiskCache::init(max_bytes);
+    virtual void init(int64_t memory_window, int64_t max_bytes) {
+        VDiskCache::init(memory_window, max_bytes);
 //        VDiskCache::init(1000000000);
         Random::s_forget_table = Random::forget_window+1;
         forget_table.resize(Random::s_forget_table);
@@ -269,7 +269,6 @@ std::pair<uint64_t, uint32_t> rank(const uint64_t & t) {
     }
 
     void _admit(const uint64_t & key, const int64_t & size) {
-        uint64_t forget_key = key+1;
 //        auto time_begin = std::chrono::system_clock::now();
 //        long time_elapsed;
 //        time_begin = std::chrono::system_clock::now();

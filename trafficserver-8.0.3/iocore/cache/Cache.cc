@@ -61,6 +61,7 @@ static short int const CACHE_DB_MAJOR_VERSION_COMPATIBLE = 21;
 int64_t cache_config_ram_cache_size            = AUTO_SIZE_RAM_CACHE;
 int cache_config_ram_cache_algorithm           = 1;
 int cache_config_vdisk_cache_algorithm         = 1;
+int cache_config_vdisk_cache_memory_window = 0;
 int cache_config_ram_cache_compress            = 0;
 int cache_config_ram_cache_compress_percent    = 90;
 int cache_config_ram_cache_use_seen_filter     = 1;
@@ -928,8 +929,8 @@ CacheProcessor::cacheInitialized()
           break;
         }
         switch (cache_config_vdisk_cache_algorithm) {
-            case VDISK_CACHE_ALGORITHM_GDBT:
-              gvol[i]->vdisk_cache = new_VdiskCacheGDBT();
+            case VDISK_CACHE_ALGORITHM_WLC:
+              gvol[i]->vdisk_cache = new_VdiskCacheWLC();
               break;
             case VDISK_CACHE_ALGORITHM_LRU:
               gvol[i]->vdisk_cache = new_VdiskCacheLRU();
@@ -951,7 +952,7 @@ CacheProcessor::cacheInitialized()
         for (i = 0; i < gnvol; i++) {
           vol = gvol[i];
           gvol[i]->ram_cache->init(vol->dirlen() * DEFAULT_RAM_CACHE_MULTIPLIER, vol);
-          gvol[i]->vdisk_cache->init(gvol[i]->len);
+          gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_memory_window, gvol[i]->len);
           ram_cache_bytes += gvol[i]->dirlen();
           Debug("cache_init", "CacheProcessor::cacheInitialized - ram_cache_bytes = %" PRId64 " = %" PRId64 "Mb", ram_cache_bytes,
                 ram_cache_bytes / (1024 * 1024));
@@ -998,7 +999,7 @@ CacheProcessor::cacheInitialized()
             factor = (double)(int64_t)(gvol[i]->len >> STORE_BLOCK_SHIFT) / (int64_t)theCache->cache_size;
             Debug("cache_init", "CacheProcessor::cacheInitialized - factor = %f", factor);
             gvol[i]->ram_cache->init((int64_t)(http_ram_cache_size * factor), vol);
-            gvol[i]->vdisk_cache->init(gvol[i]->len);
+            gvol[i]->vdisk_cache->init(cache_config_vdisk_cache_memory_window, gvol[i]->len);
             ram_cache_bytes += (int64_t)(http_ram_cache_size * factor);
             CACHE_VOL_SUM_DYN_STAT(cache_ram_cache_bytes_total_stat, (int64_t)(http_ram_cache_size * factor));
           } else {
@@ -2281,7 +2282,7 @@ CacheVC::handleReadDone(int event, Event *e)
     }
     if (!io.ok()) {
         printf("zhenyu: read error on disk\n");
-        abort();
+//        abort();
 //        Debug("cache_disk_error", "Read error on disk %s\n \
 //	    read range : [%" PRIu64 " - %" PRIu64 " bytes]  [%" PRIu64 " - %" PRIu64 " blocks] \n",
 //              vol->hash_text.get(), (uint64_t)io.aiocb.aio_offset, (uint64_t)io.aiocb.aio_offset + io.aiocb.aio_nbytes,
@@ -3250,6 +3251,7 @@ ink_cache_init(ModuleVersion v)
 
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_algorithm, "proxy.config.cache.ram_cache.algorithm");
   REC_EstablishStaticConfigInt32(cache_config_vdisk_cache_algorithm, "proxy.config.cache.vdisk_cache.algorithm");
+  REC_EstablishStaticConfigInt32(cache_config_vdisk_cache_memory_window, "proxy.config.cache.vdisk_cache.memory_window");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress, "proxy.config.cache.ram_cache.compress");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress_percent, "proxy.config.cache.ram_cache.compress_percent");
   REC_ReadConfigInt32(cache_config_ram_cache_use_seen_filter, "proxy.config.cache.ram_cache.use_seen_filter");

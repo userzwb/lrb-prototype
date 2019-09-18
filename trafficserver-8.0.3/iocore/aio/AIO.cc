@@ -390,6 +390,7 @@ aio_queue_req(AIOCallbackInternal *op, int fromAPI = 0)
 }
 
 static inline int
+//zhenyu: aio function
 cache_op(AIOCallbackInternal *op)
 {
   bool read = (op->aiocb.aio_lio_opcode == LIO_READ);
@@ -400,12 +401,18 @@ cache_op(AIOCallbackInternal *op)
     while (a->aio_nbytes - res > 0) {
       do {
         if (read) {
+//            if (a->aio_offset % 4096)
+//                abort();
+//            a->aio_offset = 4096;
           err = pread(a->aio_fildes, ((char *)a->aio_buf) + res, a->aio_nbytes - res, a->aio_offset + res);
         } else {
+//            if (a->aio_offset % 4096)
+//                abort();
           err = pwrite(a->aio_fildes, ((char *)a->aio_buf) + res, a->aio_nbytes - res, a->aio_offset + res);
         }
       } while ((err < 0) && (errno == EINTR || errno == ENOBUFS || errno == ENOMEM));
       if (err <= 0) {
+          abort();
         Warning("cache disk operation failed %s %zd %d\n", (a->aio_lio_opcode == LIO_READ) ? "READ" : "WRITE", err, errno);
         op->aio_result = -errno;
         return (err);

@@ -5,9 +5,46 @@
 #include "P_VDiskCache.h"
 #include <mutex>
 #include <chrono>
+#include <unordered_set>
 
 typedef std::list<uint64_t >::iterator ListIteratorType;
 typedef std::unordered_map<uint64_t , ListIteratorType> lruCacheMapType;
+
+class BloomFilter {
+public:
+    uint8_t current_filter = 0;
+    std::unordered_set<uint64_t> *_filters;
+    //assume partioned into 4 SSD
+    static const size_t max_n_element = 10000000;
+
+    BloomFilter() {
+        _filters = new std::unordered_set<uint64_t>[2];
+        for (int i = 0; i < 2; ++i)
+            _filters[i].reserve(max_n_element);
+    }
+
+    inline bool exist(const uint64_t &key) {
+        return (_filters[0].count(key)) || (_filters[1].count(key));
+    }
+
+    inline bool exist_or_insert(const uint64_t &key) {
+        if (exist(key))
+            return true;
+        else
+            insert(key);
+        return false;
+    }
+
+    void insert(const uint64_t &key) {
+        if (_filters[current_filter].size() > max_n_element) {
+            //if accumulate more than 40 million, switch
+            if (!_filters[1 - current_filter].empty())
+                _filters[1 - current_filter].clear();
+            current_filter = 1 - current_filter;
+        }
+        _filters[current_filter].insert(key);
+    }
+};
 
 class VDiskCacheLRU: public VDiskCache{
 public:
@@ -18,10 +55,16 @@ public:
     std::unordered_map<uint64_t , int64_t > _size_map;
     std::mutex _mutex;
     std::atomic_uint64_t t_counter = {0};
+    BloomFilter filter;
 
     void admit(const CacheKey * _key, const int64_t & size) override {
         _mutex.lock();
         const uint64_t & key = _key->b[0];
+
+        bool seen = filter.exist_or_insert(key);
+        if (!seen)
+            goto LDone;
+
         //already admitted
         if (_cacheMap.find(key) != _cacheMap.end())
             goto LDone;

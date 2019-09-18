@@ -15,7 +15,8 @@ public:
     int64_t _cacheSize; // size of cache in bytes
     int64_t _currentSize; // total size of objects in cache in bytes
 
-    virtual void init(int64_t max_bytes) {
+    //trace is use for set WLC memory window
+    virtual void init(int64_t memory_window, int64_t max_bytes) {
         _cacheSize = max_bytes;
         _currentSize = 0;
     }
@@ -26,7 +27,7 @@ public:
 };
 
 VDiskCache *new_VdiskCacheLRU();
-VDiskCache *new_VdiskCacheGDBT();
+VDiskCache *new_VdiskCacheWLC();
 VDiskCache *new_VdiskCacheStatic();
 VDiskCache *new_VdiskCacheRandom();
 

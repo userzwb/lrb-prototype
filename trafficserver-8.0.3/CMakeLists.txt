@@ -1152,7 +1152,7 @@ add_library(libcache SHARED
         iocore/cache/Store.cc
         iocore/cache/P_VDiskCache.h
         iocore/cache/VDiskCacheLRU.cc
-        iocore/cache/VDiskCacheGDBT.cc
+        iocore/cache/VDiskCacheWLC.cc
         iocore/cache/VDiskCacheStatic.cc
         iocore/cache/VDiskCacheRandom.cc
 )
