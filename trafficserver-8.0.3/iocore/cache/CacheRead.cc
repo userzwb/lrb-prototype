@@ -140,12 +140,14 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //        empty.
                 //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
                 //zhenyu: this offset's unit is block
-                uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
+//                uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
+                uint64_t aio_offset = (key->b[0] & (vol->len-1) & (0x1fbffff000ull))>>CACHE_BLOCK_SHIFT | 0x1;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
                 dir_set_offset(&result, aio_offset);
                 //the normal offset
 //        dir_set_offset(&result, 1);
-                dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
+                uint64_t read_byte = ((vdir_value_len + VDOC_HEADER_LEN) >> 12) << 12 ;
+                dir_set_approx_size(&result, read_byte);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
                 //these I just leave unchanged as the first req of wiki
@@ -1251,12 +1253,15 @@ CacheVC::openReadStartHead(int event, Event *e)
 //        empty.
             //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
             //zhenyu: this offset's unit is block
-            uint64_t aio_offset = (key.b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
+            uint64_t aio_offset = (key.b[0] & (vol->len-1) & (0x1fbffff000ull))>>CACHE_BLOCK_SHIFT | 0x1;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
             dir_set_offset(&dir, aio_offset);
+            uint64_t read_byte = ((vdir_value_len + VDOC_HEADER_LEN) >> 12) << 12 ;
+            dir_set_approx_size(&dir, read_byte);
+//        dir_set_offset(&result, 1);
+//        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
             //the normal offset
 //        dir_set_offset(&result, 1);
-            dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
             //these I just leave unchanged as the first req of wiki

@@ -401,6 +401,8 @@ cache_op(AIOCallbackInternal *op)
     while (a->aio_nbytes - res > 0) {
       do {
         if (read) {
+           a->aio_offset = (a->aio_offset >> 12) << 12;
+//            a->aio_offset &
 //            if (a->aio_offset % 4096)
 //                abort();
 //            a->aio_offset = 4096;
@@ -412,7 +414,7 @@ cache_op(AIOCallbackInternal *op)
         }
       } while ((err < 0) && (errno == EINTR || errno == ENOBUFS || errno == ENOMEM));
       if (err <= 0) {
-          abort();
+//          abort();
         Warning("cache disk operation failed %s %zd %d\n", (a->aio_lio_opcode == LIO_READ) ? "READ" : "WRITE", err, errno);
         op->aio_result = -errno;
         return (err);

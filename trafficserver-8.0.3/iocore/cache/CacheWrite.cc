@@ -717,7 +717,10 @@ Vol::evac_range(off_t low, off_t high, int evac_phase)
       first->f.done       = 1;
       io.aiocb.aio_fildes = fd;
       io.aiocb.aio_nbytes = dir_approx_size(&first->dir);
-      io.aiocb.aio_offset = this->vol_offset(&first->dir);
+//      io.aiocb.aio_offset = this->vol_offset(&first->dir);
+      io.aiocb.aio_offset = (this->vol_offset(&first->dir) >> 12 ) << 12;
+//        if (io.aiocb.aio_offset % 4096)
+//            abort();
       if ((off_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) > (off_t)(skip + len)) {
         io.aiocb.aio_nbytes = skip + len - io.aiocb.aio_offset;
       }

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <chrono>
 #include <unordered_set>
+#include <thread>
 
 typedef std::list<uint64_t >::iterator ListIteratorType;
 typedef std::unordered_map<uint64_t , ListIteratorType> lruCacheMapType;
@@ -56,6 +57,25 @@ public:
     std::mutex _mutex;
     std::atomic_uint64_t t_counter = {0};
     BloomFilter filter;
+    std::thread print_status_thread;
+
+    void init(int64_t memory_window, int64_t max_bytes) override {
+        VDiskCache::init(memory_window, max_bytes);
+        print_status_thread = std::thread(&VDiskCacheLRU::async_print_status, this);
+
+    }
+    void print_stats() {
+        std::cerr << "cache size: " << _currentSize << "/" << _cacheSize << " (" << ((double) _currentSize) / _cacheSize
+                  << ")" << std::endl;
+    }
+
+
+    void async_print_status() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            print_stats();
+        }
+    }
 
     void admit(const CacheKey * _key, const int64_t & size) override {
         _mutex.lock();
@@ -109,7 +129,6 @@ public:
         _mutex.lock();
         uint64_t t = t_counter++;
         if (!(t%1000000)) {
-            std::cerr << "cache size: " << _currentSize << "/" << _cacheSize << std::endl;
         }
         const uint64_t & obj = _key->b[0];
         auto it = _cacheMap.find(obj);
