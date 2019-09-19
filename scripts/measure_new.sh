@@ -5,12 +5,14 @@ if [[ "$#" = 3 ]]; then
   trace=$1
   alg=$2
   real_time=$3
+  trail=$4
 elif [[ "$#" = 0 ]]; then
   trace=wc1400m_ts
   #trace=ntg1_400m_16mb
   alg=lru
   #alg=fifo
   real_time=0
+  trail=0
 else
     echo "Illegal number of parameters"
     exit 1
@@ -18,21 +20,21 @@ fi
 
 n_client=1024
 n_origin_threads=1024
+#TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v1"
 zhenyu_ats_snapshot="wlc-v2"
 
-suffix=${trace}_${alg}_${real_time}
+suffix=${trace}_${alg}_${real_time}_${trail}
 
 if [[ ${alg} = "wlc" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wc1400m_ts' ]]; then
     ram_size=28998676480
-    memory_window=117440512
+    memory_window=469762048
   else
     ram_size=31006543872
-    memory_window=12582912
+    memory_window=100663296
   fi
-  suffix=${suffix}_${memory_window}
 elif [[ ${alg} = "lru" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wc1400m_ts' ]]; then
@@ -55,7 +57,8 @@ fi
 
 
 #create client
-client_name=client-${trace:0:1}-${alg}-${real_time}
+client_name=client-${trace:0:1}-${alg}-${real_time}-${trail}
+
 echo $client_name
 gcloud compute --project "analog-delight-252816" disks create $client_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
 
@@ -66,7 +69,7 @@ client_ip_internal=$( gcloud compute instances describe $client_name --format='g
 echo "$client_ip_internal"
 
 #create origin
-origin_name=origin-${trace:0:1}-${alg}-${real_time}
+origin_name=origin-${trace:0:1}-${alg}-${real_time}-${trail}
 echo $origin_name
 gcloud compute --project "analog-delight-252816" disks create $origin_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
 
@@ -77,7 +80,7 @@ origin_ip_internal=$( gcloud compute instances describe $origin_name --format='g
 echo "$origin_ip_internal"
 
 #create proxy
-proxy_name=proxy-${trace:0:1}-${alg}-${real_time}
+proxy_name=proxy-${trace:0:1}-${alg}-${real_time}-${trail}
 echo $proxy_name
 gcloud compute --project "analog-delight-252816" disks create $proxy_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
 
@@ -143,6 +146,21 @@ else
   exit 1
 fi
 
+echo "set proxy SSD permission"
+ssh "$proxy_ip_external" 'sudo apt-get update && sudo apt-get install mdadm --no-install-recommends'
+
+if [[ ${trace} = "wc1400m_ts" ]]; then
+  ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=4 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4'
+elif [[ ${trace} = "ntg1_400m_16mb" ]]; then
+  ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=8 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4 /dev/nvme0n5 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8'
+fi
+
+ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
+
+echo 'set date'
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
+ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
 
 echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash /home/zhenyus/webtracereplay/scripts/instrument_latency.sh $proxy_ip_internal
@@ -152,9 +170,6 @@ ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 100 > /tmp/proxy.log" &
-
-echo "set proxy SSD permission"
-ssh "$proxy_ip_external" 'for i in $(seq 8); do sudo chmod 777 /dev/nvme0n$i; done'
 
 echo "open orgin in proxy"
 ssh "$proxy_ip_external" "sudo nginx -s stop"
@@ -166,7 +181,11 @@ echo "use local proxy"
 ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_local.sh $origin_ip_internal
 
 #restart
+ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
 ssh "$proxy_ip_external" "/opt/ts/bin/trafficserver restart"
+
+echo "start measuring segment stat"
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh warmup_${suffix} &
 
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client
@@ -174,6 +193,9 @@ ssh "$proxy_ip_external" 'rm /home/zhenyus/webtracereplay/log/*'
 #TODO: remove this timeout later
 #ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../client_"${trace}"_warmup.tr "${n_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
 ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 10 ./client ../client_"${trace}"_warmup.tr "${n_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
+sleep 15 # for sync
+echo "stop measuring segment stat"
+ssh "$proxy_ip_external" 'pkill -f segment_static'
 
 echo "switch to remote mode"
 #use remote proxy and reload
@@ -184,7 +206,7 @@ sleep 10
 echo "start measuring segment stat"
 #: record segment byte miss/req
 ssh "$proxy_ip_external" 'pkill -f segment_static'
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh ${suffix} &
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh eval_${suffix} &
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
@@ -196,7 +218,9 @@ echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_static'
 
 echo "downloading..."
+scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
+scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log fat:~/webcachesim/gcp_log/
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* fat:~/webcachesim/gcp_log/
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
 scp ~/gcp_log/* fat:~/webcachesim/gcp_log/
