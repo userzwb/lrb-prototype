@@ -196,6 +196,7 @@ ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 10 ./c
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_static'
+ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyu/gcp_log/small_warmup_${suffix}.log
 
 echo "switch to remote mode"
 #use remote proxy and reload
@@ -216,6 +217,7 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webt
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_static'
+ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyu/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
