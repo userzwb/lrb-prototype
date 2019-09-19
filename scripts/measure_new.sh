@@ -235,6 +235,10 @@ echo "downloading..."
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log fat:~/webcachesim/gcp_log/
+
+scp -3 "$proxy_ip_external":/tmp/proxy.log ~/gcp_log/warmup_origin_${suffix}.log
+scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy.log ~/gcp_log/eval_origin_${suffix}.log
+
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* fat:~/webcachesim/gcp_log/
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
 scp ~/gcp_log/* fat:~/webcachesim/gcp_log/
@@ -242,12 +246,12 @@ scp ~/gcp_log/* fat:~/webcachesim/gcp_log/
 echo "deleting vms"
 #TODO: enable deleting
 if [[ ${alg} = "lru" ]]; then
-  gcloud compute instances delete --quiet $origin_name
-  gcloud compute instances delete --quiet $client_name
+#  gcloud compute instances delete --quiet $origin_name
+#  gcloud compute instances delete --quiet $client_name
   gcloud compute instances delete --quiet $proxy_name
 elif [[ ${alg} = "fifo" ]]; then
-  gcloud compute instances delete --quiet $origin_name
-  gcloud compute instances delete --quiet $client_name
+#  gcloud compute instances delete --quiet $origin_name
+#  gcloud compute instances delete --quiet $client_name
   gcloud compute instances delete --quiet $proxy_name
 else
   echo "wlc no terminate"
