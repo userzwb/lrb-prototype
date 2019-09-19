@@ -111,6 +111,11 @@ until ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal 'echo 1>/dev/nul
   sleep 5
 done
 
+echo 'set date now'
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+
 echo "updating repo"
 ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
 ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
@@ -157,7 +162,7 @@ fi
 
 ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
 
-echo 'set date'
+echo 'set date past'
 ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
 ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
@@ -184,12 +189,12 @@ ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_local.sh $or
 ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
 ssh "$proxy_ip_external" "/opt/ts/bin/trafficserver restart"
 
-echo "start measuring segment stat"
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh warmup_${suffix} &
-
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client
 ssh "$proxy_ip_external" 'rm /home/zhenyus/webtracereplay/log/*'
+
+echo "start measuring segment stat"
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh warmup_${suffix} &
 #TODO: remove this timeout later
 #ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../client_"${trace}"_warmup.tr "${n_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
 ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 10 ./client ../client_"${trace}"_warmup.tr "${n_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
