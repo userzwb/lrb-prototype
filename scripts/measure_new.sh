@@ -115,14 +115,15 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/c
 ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal "cd ~/webtracereplay/origin && git pull && make"
 
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
+#use single SSD
 if [[ ${trace} = "wc1400m_ts" ]]; then
-  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/hosting_4.config ~/webtracereplay/tsconfig_gcp/hosting.config"
+#  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/hosting_4.config ~/webtracereplay/tsconfig_gcp/hosting.config"
   ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_4.config ~/webtracereplay/tsconfig_gcp/storage.config"
-  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/volume_4.config ~/webtracereplay/tsconfig_gcp/volume.config"
+#  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/volume_4.config ~/webtracereplay/tsconfig_gcp/volume.config"
 elif [[ ${trace} = "ntg1_400m_16mb" ]]; then
-  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/hosting_8.config ~/webtracereplay/tsconfig_gcp/hosting.config"
+#  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/hosting_8.config ~/webtracereplay/tsconfig_gcp/hosting.config"
   ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_8.config ~/webtracereplay/tsconfig_gcp/storage.config"
-  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/volume_8.config ~/webtracereplay/tsconfig_gcp/volume.config"
+#  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/volume_8.config ~/webtracereplay/tsconfig_gcp/volume.config"
 else
   echo "error: no trace found"
   exit 1
