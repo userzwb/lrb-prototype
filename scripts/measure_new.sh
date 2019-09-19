@@ -22,7 +22,7 @@ n_client=1024
 n_origin_threads=1024
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v1"
-zhenyu_ats_snapshot="wlc-v2"
+zhenyu_ats_snapshot="wlc-v3"
 
 suffix=${trace}_${alg}_${real_time}_${trail}
 
