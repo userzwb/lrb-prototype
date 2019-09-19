@@ -7,10 +7,11 @@ if [[ "$#" = 4 ]]; then
   real_time=$3
   trail=$4
 elif [[ "$#" = 0 ]]; then
-  trace=wc1400m_ts
-  #trace=ntg1_400m_16mb
+#  trace=wc1400m_ts
+  trace=ntg1_400m_16mb
 #  alg=lru
-  alg=fifo
+#  alg=fifo
+  alg=wlc
   real_time=0
   trail=0
 else
@@ -167,9 +168,9 @@ fi
 ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
 
 echo 'set date past'
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
+ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
 
 echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash /home/zhenyus/webtracereplay/scripts/instrument_latency.sh $proxy_ip_internal

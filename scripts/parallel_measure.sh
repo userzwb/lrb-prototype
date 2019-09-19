@@ -4,8 +4,8 @@
 traces=(wc1400m_ts ntg1_400m_16mb)
 #traces=(ntg1_400m_16mb)
 
-algs=(fifo lru wlc)
-#algs=(lru wlc)
+#algs=(fifo lru wlc)
+algs=(lru wlc)
 
 request_rates=(0 1)
 #request_rates=(0)
