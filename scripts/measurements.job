@@ -10,3 +10,15 @@ bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 0 0 &
 bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 1 0 &> /tmp/wc1400m_ts_wlc_1_0_prototype.log
 bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 0 0 &> /tmp/ntg1_400m_16mb_wlc_0_0_prototype.log
 bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 1 0 &> /tmp/ntg1_400m_16mb_wlc_1_0_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 0 1 &> /tmp/wc1400m_ts_wlc_0_1_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 1 1 &> /tmp/wc1400m_ts_wlc_1_1_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 0 1 &> /tmp/ntg1_400m_16mb_wlc_0_1_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 1 1 &> /tmp/ntg1_400m_16mb_wlc_1_1_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 0 2 &> /tmp/wc1400m_ts_wlc_0_2_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 1 2 &> /tmp/wc1400m_ts_wlc_1_2_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 0 2 &> /tmp/ntg1_400m_16mb_wlc_0_2_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 1 2 &> /tmp/ntg1_400m_16mb_wlc_1_2_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 0 3 &> /tmp/wc1400m_ts_wlc_0_3_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh wc1400m_ts wlc 1 3 &> /tmp/wc1400m_ts_wlc_1_3_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 0 3 &> /tmp/ntg1_400m_16mb_wlc_0_3_prototype.log
+bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh ntg1_400m_16mb wlc 1 3 &> /tmp/ntg1_400m_16mb_wlc_1_3_prototype.log
