@@ -141,7 +141,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
                 //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
                 //zhenyu: this offset's unit is block
 //                uint64_t aio_offset = (key->b[0] & 0x1fbffff000ull) >> CACHE_BLOCK_SHIFT;
-                uint64_t aio_offset = (key->b[0] & (vol->len-1) & (0x1fbffff000ull))>>CACHE_BLOCK_SHIFT | 0x1;
+                uint64_t aio_offset = (key->b[0] & (vol->len-1) & (~ (1ull << 30)))>>CACHE_BLOCK_SHIFT | 0x1;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
                 dir_set_offset(&result, aio_offset);
                 //the normal offset
@@ -1253,7 +1253,7 @@ CacheVC::openReadStartHead(int event, Event *e)
 //        empty.
             //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
             //zhenyu: this offset's unit is block
-            uint64_t aio_offset = (key.b[0] & (vol->len-1) & (0x1fbffff000ull))>>CACHE_BLOCK_SHIFT | 0x1;
+            uint64_t aio_offset = (key.b[0] & (vol->len-1) & (~ (1ull << 30)))>>CACHE_BLOCK_SHIFT | 0x1;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
             dir_set_offset(&dir, aio_offset);
             uint64_t read_byte = ((vdir_value_len + VDOC_HEADER_LEN) >> 12) << 12 ;
