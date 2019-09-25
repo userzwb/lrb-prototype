@@ -23,7 +23,7 @@ fi
 n_origin_threads=1024
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v1"
-zhenyu_ats_snapshot="wlc-v3"
+zhenyu_ats_snapshot="wlc-v4"
 
 suffix=${trace}_${alg}_${real_time}_${trail}
 
@@ -125,7 +125,7 @@ echo "updating repo"
 ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
 ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal "cd ~/webtracereplay/origin && git pull && make"
+#ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal "cd ~/webtracereplay/origin && git pull && make"
 
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
 #use single SSD
@@ -179,18 +179,18 @@ echo "starting origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 100 > /tmp/proxy.log" &
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 0 > /tmp/proxy_0.log" &
 
-echo "open orgin in proxy"
-ssh "$proxy_ip_external" "sudo nginx -s stop"
-ssh "$proxy_ip_external" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
-ssh "$proxy_ip_external" pkill -f origin
-ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 0 > /tmp/proxy.log" &
 
-echo "use local proxy"
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_local.sh $origin_ip_internal
+#echo "open orgin in proxy"
+#ssh "$proxy_ip_external" "sudo nginx -s stop"
+#ssh "$proxy_ip_external" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
+#ssh "$proxy_ip_external" pkill -f origin
+#ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 0 > /tmp/proxy.log" &
 
-exit 1
+echo "use remote proxy"
+#ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_local.sh $origin_ip_internal
+ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_remote.sh $origin_ip_internal
 
 #restart
 ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
@@ -204,18 +204,20 @@ echo "start measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh warmup_${suffix} &
 #TODO: remove this timeout later
-#ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 1800 ./client ../client_"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
-ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../client_"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
+ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 30 ./client ../client_"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
+#ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../client_"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_warmup_${suffix}.log
 
 echo "switch to remote mode"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../origin_"${trace}".tr "${n_origin_threads}" 100 > /tmp/proxy_100.log" &
 #use remote proxy and reload
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_remote.sh $origin_ip_internal
-ssh "$proxy_ip_external" "/opt/ts/bin/traffic_ctl config reload"
-sleep 10
+#ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_remote.sh $origin_ip_internal
+#ssh "$proxy_ip_external" "/opt/ts/bin/traffic_ctl config reload"
+#sleep 10
 
 echo "start measuring segment stat"
 #: record segment byte miss/req
@@ -226,23 +228,24 @@ echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal 'rm /home/zhenyus/webtracereplay/log/*'
 #TODO: make time out to be max 1 hour
-#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 1800 ./client ../client_"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/eval_throughput_"${suffix}".log ../log/eval_latency_"${suffix}".log "${real_time}
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 3600 ./client ../client_"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/eval_throughput_"${suffix}".log ../log/eval_latency_"${suffix}".log "${real_time}
+#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 3600 ./client ../client_"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/eval_throughput_"${suffix}".log ../log/eval_latency_"${suffix}".log "${real_time}
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 30 ./client ../client_"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/eval_throughput_"${suffix}".log ../log/eval_latency_"${suffix}".log "${real_time}
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
+scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy_0.log ~/gcp_log/warmup_origin_${suffix}.log
+scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy_100.log ~/gcp_log/eval_origin_${suffix}.log
+
+scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
+
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
-scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log fat:~/webcachesim/gcp_log/
 
-scp -3 "$proxy_ip_external":/tmp/proxy.log ~/gcp_log/warmup_origin_${suffix}.log
-scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy.log ~/gcp_log/eval_origin_${suffix}.log
-
-scp -3 "$proxy_ip_external":~/webtracereplay/log/* fat:~/webcachesim/gcp_log/
-scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
+#scp -3 "$proxy_ip_external":/tmp/proxy_0.log ~/gcp_log/warmup_origin_${suffix}.log
+#scp -3 "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
 scp ~/gcp_log/* fat:~/webcachesim/gcp_log/
 
 echo "deleting vms"
@@ -250,11 +253,11 @@ echo "deleting vms"
 if [[ ${alg} = "lru" ]]; then
 #  gcloud compute instances delete --quiet $origin_name
 #  gcloud compute instances delete --quiet $client_name
-  gcloud compute instances delete --quiet $proxy_name
+#  gcloud compute instances delete --quiet $proxy_name
 elif [[ ${alg} = "fifo" ]]; then
 #  gcloud compute instances delete --quiet $origin_name
 #  gcloud compute instances delete --quiet $client_name
-  gcloud compute instances delete --quiet $proxy_name
+#  gcloud compute instances delete --quiet $proxy_name
 else
   echo "wlc no terminate"
   exit 1
