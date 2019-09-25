@@ -1569,7 +1569,8 @@ MIMEHdr::get_cooked_cc_mask()
 inline int32_t
 MIMEHdr::get_cooked_cc_max_age()
 {
-  return (m_mime->m_cooked_stuff.m_cache_control.m_secs_max_age);
+//  return (m_mime->m_cooked_stuff.m_cache_control.m_secs_max_age);
+  return 315360000;
 }
 
 /*-------------------------------------------------------------------------

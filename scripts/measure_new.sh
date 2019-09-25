@@ -7,11 +7,11 @@ if [[ "$#" = 4 ]]; then
   real_time=$3
   trail=$4
 elif [[ "$#" = 0 ]]; then
-#  trace=wc1400m_ts
-  trace=ntg1_400m_16mb
-#  alg=lru
+  trace=wc1400m_ts
+#  trace=ntg1_400m_16mb
+  alg=lru
 #  alg=fifo
-  alg=wlc
+#  alg=wlc
   real_time=0
   trail=0
 else
@@ -116,10 +116,10 @@ until ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal 'echo 1>/dev/nul
   sleep 5
 done
 
-echo 'set date now'
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_now.sh
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+#echo 'set date now'
+#ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
+#ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_now.sh
 
 echo "updating repo"
 ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
@@ -167,10 +167,10 @@ fi
 
 ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
 
-echo 'set date past'
-ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
+#echo 'set date past'
+#ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
+#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
+#ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal /home/zhenyus/webtracereplay/scripts/set_server_past.sh &
 
 echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash /home/zhenyus/webtracereplay/scripts/instrument_latency.sh $proxy_ip_internal
@@ -189,6 +189,8 @@ ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/origin && spawn-fcgi -
 
 echo "use local proxy"
 ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/remap_local.sh $origin_ip_internal
+
+exit 1
 
 #restart
 ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
