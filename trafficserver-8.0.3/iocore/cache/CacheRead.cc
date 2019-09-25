@@ -119,7 +119,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     //check whether the thread itself holds the lock
     //create the read only when key in virtual disk
     if (lock.is_locked()) {
-        dir_probe(key, vol, &result, &last_collision);
+//        dir_probe(key, vol, &result, &last_collision);
         vdir_value_len = vol->vdisk_cache->lookup(key);
     }
     if (!lock.is_locked() || vdir_value_len) {
@@ -136,7 +136,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         if (lock.is_locked()) {
             c->first_key_value_len = vdir_value_len;
 
-            if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
+//            if (!result.w[0] && !result.w[1] && !result.w[2] && !result.w[3] && !result.w[4]) {
 //        empty.
                 //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
                 //zhenyu: this offset's unit is block
@@ -157,13 +157,13 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
                 dir_set_pinned(&result, 0);
                 dir_set_token(&result, 0);
                 dir_set_next(&result, 0);
-            } else {
+//            } else {
                 //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
 //        c->od        = od;
                 //if the dir is crashed
-                if (dir_approx_size(&result) < VDOC_HEADER_LEN)
-                    dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
-            }
+//                if (dir_approx_size(&result) < VDOC_HEADER_LEN)
+//                    dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
+//            }
         }
     }
 
@@ -1243,13 +1243,13 @@ CacheVC::openReadStartHead(int event, Event *e)
       SET_HANDLER(&CacheVC::openReadFromWriter);
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
-    dir_probe(&key, vol, &dir, &last_collision);
+//    dir_probe(&key, vol, &dir, &last_collision);
     uint64_t vdir_value_len = vol->vdisk_cache->lookup(&key);
     if (vdir_value_len) {
       first_dir = dir;
       first_key_value_len = vdir_value_len;
 
-        if (!dir.w[0] && !dir.w[1] && !dir.w[2] && !dir.w[3] && !dir.w[4]) {
+//        if (!dir.w[0] && !dir.w[1] && !dir.w[2] && !dir.w[3] && !dir.w[4]) {
 //        empty.
             //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
             //zhenyu: this offset's unit is block
@@ -1271,13 +1271,13 @@ CacheVC::openReadStartHead(int event, Event *e)
             dir_set_pinned(&dir, 0);
             dir_set_token(&dir, 0);
             dir_set_next(&dir, 0);
-        } else {
+//        } else {
             //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
 //        c->od        = od;
             //if the dir is crashed
-            if (dir_approx_size(&dir) < VDOC_HEADER_LEN)
-                dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
-        }
+//            if (dir_approx_size(&dir) < VDOC_HEADER_LEN)
+//                dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
+//        }
     //zhenyu: always do read
       int ret  = do_read_call(&key);
       if (ret == EVENT_RETURN) {

@@ -525,7 +525,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_hit_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_hit_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_hit_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_hit_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_hit_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_hit_origin_server_bytes_stat", RECD_INT, RECP_PERSISTENT,
@@ -534,7 +534,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_miss_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_miss_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_miss_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_miss_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_miss_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_miss_origin_server_bytes_stat", RECD_INT, RECP_PERSISTENT,
@@ -543,7 +543,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_expired_miss_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_expired_miss_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_expired_miss_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_expired_miss_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_expired_miss_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_expired_miss_origin_server_bytes_stat", RECD_INT,
@@ -552,7 +552,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_hit_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_refresh_hit_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_hit_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_hit_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_refresh_hit_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_hit_origin_server_bytes_stat", RECD_INT,
@@ -561,7 +561,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_miss_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_refresh_miss_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_miss_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_miss_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_refresh_miss_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_refresh_miss_origin_server_bytes_stat", RECD_INT,
@@ -579,7 +579,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_hit_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_ims_hit_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_hit_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_hit_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_ims_hit_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_hit_origin_server_bytes_stat", RECD_INT, RECP_PERSISTENT,
@@ -588,7 +588,7 @@ register_stat_callbacks()
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_miss_count_stat", RECD_COUNTER, RECP_PERSISTENT,
                      (int)http_tcp_ims_miss_count_stat, RecRawStatSyncCount);
 
-  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_miss_user_agent_bytes_stat", RECD_INT, RECP_PERSISTENT,
+  RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_miss_user_agent_bytes_stat", RECD_INT, RECP_NON_PERSISTENT,
                      (int)http_tcp_ims_miss_user_agent_bytes_stat, RecRawStatSyncSum);
 
   RecRegisterRawStat(http_rsb, RECT_PROCESS, "proxy.process.http.tcp_ims_miss_origin_server_bytes_stat", RECD_INT, RECP_PERSISTENT,

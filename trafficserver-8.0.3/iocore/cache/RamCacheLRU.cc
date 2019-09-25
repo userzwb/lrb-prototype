@@ -25,8 +25,8 @@
 
 struct RamCacheLRUEntry {
   CryptoHash key;
-  uint32_t auxkey1;
-  uint32_t auxkey2;
+//  uint32_t auxkey1;
+//  uint32_t auxkey2;
   LINK(RamCacheLRUEntry, lru_link);
   LINK(RamCacheLRUEntry, hash_link);
   Ptr<IOBufferData> data;
@@ -130,13 +130,14 @@ RamCacheLRU::get(CryptoHash *key, Ptr<IOBufferData> *ret_data, uint32_t auxkey1,
   uint32_t i          = key->slice32(3) % nbuckets;
   RamCacheLRUEntry *e = bucket[i].head;
   while (e) {
-    if (e->key == *key && e->auxkey1 == auxkey1 && e->auxkey2 == auxkey2) {
-      lru.remove(e);
-      lru.enqueue(e);
-      (*ret_data) = e->data;
-      DDebug("ram_cache", "get %X %d %d HIT", key->slice32(3), auxkey1, auxkey2);
-      CACHE_SUM_DYN_STAT_THREAD(cache_ram_cache_hits_stat, 1);
-      return 1;
+//    if (e->key == *key && e->auxkey1 == auxkey1 && e->auxkey2 == auxkey2) {
+    if (e->key == *key) {
+            lru.remove(e);
+            lru.enqueue(e);
+            (*ret_data) = e->data;
+            DDebug("ram_cache", "get %X %d %d HIT", key->slice32(3), auxkey1, auxkey2);
+            CACHE_SUM_DYN_STAT_THREAD(cache_ram_cache_hits_stat, 1);
+            return 1;
     }
     e = e->hash_link.next;
   }
@@ -154,7 +155,7 @@ RamCacheLRU::remove(RamCacheLRUEntry *e)
   lru.remove(e);
   bytes -= ENTRY_OVERHEAD + e->data->block_size();
   CACHE_SUM_DYN_STAT_THREAD(cache_ram_cache_bytes_stat, -(ENTRY_OVERHEAD + e->data->block_size()));
-  DDebug("ram_cache", "put %X %d %d FREED", e->key.slice32(3), e->auxkey1, e->auxkey2);
+//  DDebug("ram_cache", "put %X %d %d FREED", e->key.slice32(3), e->auxkey1, e->auxkey2);
   e->data = nullptr;
   THREAD_FREE(e, ramCacheLRUEntryAllocator, this_thread());
   objects--;
@@ -181,21 +182,21 @@ RamCacheLRU::put(CryptoHash *key, IOBufferData *data, uint32_t len, bool, uint32
   RamCacheLRUEntry *e = bucket[i].head;
   while (e) {
     if (e->key == *key) {
-      if (e->auxkey1 == auxkey1 && e->auxkey2 == auxkey2) {
+//      if (e->auxkey1 == auxkey1 && e->auxkey2 == auxkey2) {
         lru.remove(e);
         lru.enqueue(e);
         return 1;
-      } else { // discard when aux keys conflict
-        e = remove(e);
-        continue;
-      }
+//      } else { // discard when aux keys conflict
+//        e = remove(e);
+//        continue;
+//      }
     }
     e = e->hash_link.next;
   }
   e          = THREAD_ALLOC(ramCacheLRUEntryAllocator, this_ethread());
   e->key     = *key;
-  e->auxkey1 = auxkey1;
-  e->auxkey2 = auxkey2;
+//  e->auxkey1 = auxkey1;
+//  e->auxkey2 = auxkey2;
   e->data    = data;
   bucket[i].push(e);
   lru.enqueue(e);
@@ -227,9 +228,10 @@ RamCacheLRU::fixup(const CryptoHash *key, uint32_t old_auxkey1, uint32_t old_aux
   uint32_t i          = key->slice32(3) % nbuckets;
   RamCacheLRUEntry *e = bucket[i].head;
   while (e) {
-    if (e->key == *key && e->auxkey1 == old_auxkey1 && e->auxkey2 == old_auxkey2) {
-      e->auxkey1 = new_auxkey1;
-      e->auxkey2 = new_auxkey2;
+//    if (e->key == *key && e->auxkey1 == old_auxkey1 && e->auxkey2 == old_auxkey2) {
+    if (e->key == *key) {
+//      e->auxkey1 = new_auxkey1;
+//      e->auxkey2 = new_auxkey2;
       return 1;
     }
     e = e->hash_link.next;
