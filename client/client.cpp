@@ -33,6 +33,7 @@ atomic_bool is_stop;
 
 std::atomic<long> bytes;
 std::atomic<long> reqs;
+std::atomic<double> latency;
 
 unordered_map<double, long> e2e_latency_histData;
 unordered_map<double, long> fb_latency_histData;
@@ -121,6 +122,7 @@ int measureThread() {
             curl_easy_getinfo(curl_handle, CURLINFO_STARTTRANSFER_TIME, &t_fb);
             double t_e2e;
             curl_easy_getinfo(curl_handle, CURLINFO_TOTAL_TIME, &t_e2e);
+            latency.store(t_fb);
             //get elapsed time
             histogram(log10(t_e2e) + 9, log10(t_fb) + 9);
         }
@@ -173,7 +175,8 @@ int requestCreate() {
                     trace_clock = time;
                     break;
                 } else {
-                    auto sleep_time = chrono::microseconds(static_cast<int>(1000000*(time - trace_clock -wall_clock_elapse)));
+                    auto sleep_time = chrono::microseconds(
+                            static_cast<int>(1000000 * (time - trace_clock - wall_clock_elapse)));
                     this_thread::sleep_for(sleep_time);//wait a little bit
                 }
             }
@@ -187,21 +190,29 @@ int requestCreate() {
 }
 
 void output() {
+    int throughput_counter = 0;
+    int throughput_interval = 1000;  //1000ms
+    int latency_interval = 100;
+    long tmpr=0, tmpb=0;
     while (running) {
         chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
-        reqs.store(0);
-        bytes.store(0);
-        this_thread::sleep_for(chrono::milliseconds(1000));
-        const long tmpr = reqs.load();
-        const long tmpb = bytes.load();
+        this_thread::sleep_for(chrono::milliseconds(latency_interval));
+        if (!((throughput_counter++)%(throughput_interval/latency_interval))) {
+            tmpr = reqs.load();
+            tmpb = bytes.load();
+            reqs.store(0);
+            bytes.store(0);
+        }
+        const double tmpl = latency.load();
         chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
         const long timeElapsed = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-        outTp << tmpr << " " << tmpb << " " << timeElapsed << endl;
+        outTp << tmpr << " " << tmpb << " " << tmpl << " " << timeElapsed << endl;
+        cout << tmpr << " " << tmpb << " " << tmpl << " " << timeElapsed << endl;
     }
 }
 
-void signalHandler( int signum ) {
-    cout << "Interrupt signal (" << signum << ") received.\n";
+void signalHandler(int signum) {
+    cerr << "Interrupt signal (" << signum << ") received.\n";
     is_stop = true;
 }
 
