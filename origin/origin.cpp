@@ -111,8 +111,8 @@ int main(int argc, char *argv[]) {
 
     numberOfThreads = stoll(argv[2]);
     latency = stoll(argv[3]);
-    cout<<"num_threads: "<<numberOfThreads<<endl;
-    cout<<"latency: "<<latency<<endl;
+    cerr<<"num_threads: "<<numberOfThreads<<endl;
+    cerr<<"latency: "<<latency<<endl;
 
     bytes.store(0);
     reqs.store(0);
