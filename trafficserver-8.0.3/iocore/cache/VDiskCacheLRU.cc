@@ -5,8 +5,9 @@
 #include "P_VDiskCache.h"
 #include <mutex>
 #include <chrono>
-#include <unordered_set>
 #include <thread>
+#include "sparsepp/spp.h"
+using spp::sparse_hash_map;
 
 typedef std::list<uint64_t >::iterator ListIteratorType;
 //typedef std::unordered_map<uint64_t , ListIteratorType> lruCacheMapType;
@@ -53,7 +54,7 @@ public:
     std::list<uint64_t > _cacheList;
     // map to find objects in list
 //    lruCacheMapType _cacheMap;
-    std::unordered_map<uint64_t , int64_t > _size_map;
+    sparse_hash_map<uint64_t , int64_t > _size_map;
     std::mutex _mutex;
     std::atomic_uint64_t t_counter = {0};
 //    BloomFilter filter;
@@ -128,9 +129,9 @@ public:
 
     uint64_t lookup(const CacheKey * _key) override {
         _mutex.lock();
-        uint64_t t = t_counter++;
-        if (!(t%1000000)) {
-        }
+//        uint64_t t = t_counter++;
+////        if (!(t%1000000)) {
+//        }
         const uint64_t & obj = _key->b[0];
         auto it = _size_map.find(obj);
         uint64_t ret = 0;
