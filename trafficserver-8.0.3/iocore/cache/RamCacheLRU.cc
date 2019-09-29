@@ -127,6 +127,13 @@ RamCacheLRU::get(CryptoHash *key, Ptr<IOBufferData> *ret_data, uint32_t auxkey1,
   if (!max_bytes) {
     return 0;
   }
+//    static int tmp_c = 0;
+//  if (!(tmp_c++%100000)) {
+//      std::cerr << "\nsize: " << size() << std::endl
+//                << "nbuckets: " << nbuckets << std::endl
+//                << "ibuckets: " << ibuckets << std::endl;
+//  }
+
   uint32_t i          = key->slice32(3) % nbuckets;
   RamCacheLRUEntry *e = bucket[i].head;
   while (e) {
@@ -163,6 +170,7 @@ RamCacheLRU::remove(RamCacheLRUEntry *e)
 }
 
 // ignore 'copy' since we don't touch the data
+//zhenyu: return 0 fail, 1 succeed
 int
 RamCacheLRU::put(CryptoHash *key, IOBufferData *data, uint32_t len, bool, uint32_t auxkey1, uint32_t auxkey2)
 {
@@ -183,6 +191,7 @@ RamCacheLRU::put(CryptoHash *key, IOBufferData *data, uint32_t len, bool, uint32
   while (e) {
     if (e->key == *key) {
 //      if (e->auxkey1 == auxkey1 && e->auxkey2 == auxkey2) {
+        //zhenyu: LRU update
         lru.remove(e);
         lru.enqueue(e);
         return 1;
