@@ -59,6 +59,8 @@ public:
     std::atomic_uint64_t t_counter = {0};
 //    BloomFilter filter;
     std::thread print_status_thread;
+    int n_admit = 0;
+    int n_lookup = 0;
 
     void init(int64_t memory_window, int64_t max_bytes) override {
         VDiskCache::init(memory_window, max_bytes);
@@ -68,7 +70,9 @@ public:
     void print_stats() {
         std::cerr << "\ncache size: " << _currentSize << "/" << _cacheSize << " (" << ((double) _currentSize) / _cacheSize
                   << ")" << std::endl
-                  << "n_metadata: " << _size_map.size() << std::endl;
+                  << "n_metadata: " << _size_map.size() << std::endl
+                  << "n_admit: " << n_admit << std::endl
+                  << "n_lookup: " << n_lookup << std::endl;
     }
 
 
@@ -81,11 +85,12 @@ public:
 
     void admit(const CacheKey * _key, const int64_t & size) override {
         _mutex.lock();
+        n_admit++;
         const uint64_t & key = _key->b[0];
 
-//        bool seen = filter.exist_or_insert(key);
-//        if (!seen)
-//            goto LDone;
+////        bool seen = filter.exist_or_insert(key);
+////        if (!seen)
+////            goto LDone;
 
         //already admitted
         if (_size_map.find(key) != _size_map.end())
@@ -129,21 +134,41 @@ public:
 
     uint64_t lookup(const CacheKey * _key) override {
         _mutex.lock();
-//        uint64_t t = t_counter++;
-////        if (!(t%1000000)) {
-//        }
+        n_lookup++;
         const uint64_t & obj = _key->b[0];
         auto it = _size_map.find(obj);
         uint64_t ret = 0;
         if (it != _size_map.end()) {
             // log hit
             auto & size = it->second;
-//            LOG("h", 0, obj.id, obj.size);
-//            hit(it, size);
+////            LOG("h", 0, obj.id, obj.size);
+////            hit(it, size);
             ret = size;
         }
+        static std::atomic<int> ret_size = 8*1024*1024+248*1024;
+        ret_size += 4096;
+        if (ret_size > 8*1024*1024+256*1024)
+            ret_size = 8*1024*1024+248*1024;
+        ret = ret_size;
         _mutex.unlock();
+//        if (!ret)
+//            ret = 1024;
+//        std::cout<<ret<<std::endl;
+//        _ret=ret;
+//        const int max_cap = 32*1024;
+//        const int min_cap = 16*1024;
+//        if (ret > max_cap)
+//            ret = max_cap;
+//        if (ret && ret < max_cap)
+//            ret = max_cap;
         return ret;
+//        static std::atomic<int> counter = 0;
+//        if (!(counter++%3))
+//            return 0;
+//        return ret_size;
+//        return _key->b[0] & 66000ull;
+//        return 330000;
+//        return 33000;
     }
 };
 

@@ -33,6 +33,11 @@ public:
         return _key->b[0] & 66000ull;
 //        return 33000;
 //        return 4000;
+        //random policy
+        static std::atomic<int> counter = 0;
+        if (!(counter++%3))
+            return 0;
+        return 33000;
     }
 };
 
