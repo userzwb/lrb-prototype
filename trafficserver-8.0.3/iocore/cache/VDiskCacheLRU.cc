@@ -56,7 +56,6 @@ public:
 //    lruCacheMapType _cacheMap;
     sparse_hash_map<uint64_t , int64_t > _size_map;
     std::mutex _mutex;
-    std::atomic_uint64_t t_counter = {0};
 //    BloomFilter filter;
     std::thread print_status_thread;
     int n_admit = 0;
@@ -145,11 +144,11 @@ public:
 ////            hit(it, size);
             ret = size;
         }
-        static std::atomic<int> ret_size = 8*1024*1024+248*1024;
-        ret_size += 4096;
-        if (ret_size > 8*1024*1024+256*1024)
-            ret_size = 8*1024*1024+248*1024;
-        ret = ret_size;
+//        static std::atomic<int> ret_size = 8*1024*1024+248*1024;
+//        ret_size += 4096;
+//        if (ret_size > 8*1024*1024+256*1024)
+//            ret_size = 8*1024*1024+248*1024;
+//        ret = ret_size;
         _mutex.unlock();
 //        if (!ret)
 //            ret = 1024;

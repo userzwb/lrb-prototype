@@ -40,3 +40,4 @@ client_100m.tr
 origin_200m.tr
 *.tr
 *.log
+tmp

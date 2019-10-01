@@ -2507,13 +2507,8 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
   }
 
   io.aiocb.aio_fildes = vol->fd;
-//  offset should be within the volume - 1GB, 4KB align
-//  io.aiocb.aio_offset = vol->vol_offset(&dir);
-  io.aiocb.aio_offset = (vol->vol_offset(&dir) >> 12) << 12;
-
-//    if (io.aiocb.aio_offset % 4096)
-//        abort();
-    //to make it simple, never bypass the boundary
+  io.aiocb.aio_offset = vol->vol_offset(&dir);
+  //to make it simple, never bypass the boundary
 //  if ((off_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) > (off_t)(vol->skip + vol->len)) {
 //    io.aiocb.aio_nbytes = vol->skip + vol->len - io.aiocb.aio_offset;
 //  }

@@ -397,11 +397,11 @@ cache_op(AIOCallbackInternal *op)
   for (; op; op = (AIOCallbackInternal *)op->then) {
     ink_aiocb *a = &op->aiocb;
     ssize_t err, res = 0;
-
+    a->aio_offset = (a->aio_offset >> 12) << 12;
+    a->aio_nbytes = ((a->aio_nbytes + 0xfff) >> 12) << 12;
     while (a->aio_nbytes - res > 0) {
       do {
         if (read) {
-           a->aio_offset = (a->aio_offset >> 12) << 12;
 //            a->aio_offset &
 //            if (a->aio_offset % 4096)
 //                abort();
