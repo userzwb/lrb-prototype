@@ -1091,12 +1091,16 @@ CacheVC::openReadStartHead(int event, Event *e)
     }
     // an object needs to be outside the aggregation window in order to be
     // be evacuated as it is read
+//        //TODO: zhenyu: how to handle this for fake obj?
+//because dir is determinstically faked, this can cause overflow
+//    if (f.doc_from_ram_cache) {
 //    if (!dir_agg_valid(vol, &dir)) {
 //      // a directory entry which is nolonger valid may have been overwritten
 //      if (!dir_valid(vol, &dir)) {
 //        last_collision = nullptr;
 //      }
 //      goto Lread;
+//    }
 //    }
     doc = (Doc *)buf->data();
     if (doc->magic != DOC_MAGIC) {
@@ -1177,24 +1181,19 @@ CacheVC::openReadStartHead(int event, Event *e)
         }
         goto Ldone;
       }
-//      if (doc->checksum == 2695938256) {
-          //we know this is random byte
-          //always set this
-        alternate_tmp->m_alt->m_object_size[0] = doc->total_len;
-//      }
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();
-//      if (key == doc->key) { // is this my data?
+      if (key == doc->key) { // is this my data?
       //zhenyu: assume always your data
-      f.single_fragment = doc->single_fragment();
-//      ink_assert(f.single_fragment); // otherwise need to read earliest
-      ink_assert(doc->hlen);
-      doc_pos = doc->prefix_len();
-      next_CacheKey(&key, &doc->key);
-//      } else {
-//        f.single_fragment = false;
-//      }
+        f.single_fragment = doc->single_fragment();
+        ink_assert(f.single_fragment); // otherwise need to read earliest
+        ink_assert(doc->hlen);
+        doc_pos = doc->prefix_len();
+        next_CacheKey(&key, &doc->key);
+      } else {
+        f.single_fragment = false;
+      }
     } else {
       next_CacheKey(&key, &doc->key);
       f.single_fragment = doc->single_fragment();
@@ -1210,9 +1209,9 @@ CacheVC::openReadStartHead(int event, Event *e)
     }
     // the first fragment might have been gc'ed. Make sure the first
     // fragment is there before returning CACHE_EVENT_OPEN_READ
-//    if (!f.single_fragment) {
-//      goto Learliest;
-//    }
+    if (!f.single_fragment) {
+      goto Learliest;
+    }
 
     if (vol->within_hit_evacuate_window(&dir) &&
         (!cache_config_hit_evacuate_size_limit || doc_len <= (uint64_t)cache_config_hit_evacuate_size_limit)) {

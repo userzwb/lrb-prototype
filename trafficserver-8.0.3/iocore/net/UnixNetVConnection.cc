@@ -953,6 +953,8 @@ UnixNetVConnection::load_buffer_and_write(int64_t towrite, MIOBufferAccessor &bu
       // build an iov entry
       tiovec[niov].iov_len  = len;
       tiovec[niov].iov_base = tmp_reader->start();
+      std::cout<<tiovec[niov].iov_base<<std::endl;
+      std::cout<<tiovec[niov].iov_len<<std::endl;
       niov++;
 
       try_to_write += len;
