@@ -501,6 +501,7 @@ NetHandler::waitForActivity(ink_hrtime timeout)
       if (get_ev_events(pd, x) & (EVENTIO_WRITE | EVENTIO_ERROR)) {
         vc->write.triggered = 1;
         if (!write_ready_list.in(vc)) {
+            //zhenyu: vc added to write_ready_list
           write_ready_list.enqueue(vc);
         } else if (get_ev_events(pd, x) & EVENTIO_ERROR) {
           // check for unhandled epoll events that should be handled

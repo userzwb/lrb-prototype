@@ -146,8 +146,8 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
                 dir_set_offset(&result, aio_offset);
                 //the normal offset
 //        dir_set_offset(&result, 1);
-                uint64_t read_byte = vdir_value_len + VDOC_HEADER_LEN;
-                dir_set_approx_size(&result, read_byte);
+                uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
+                dir_set_approx_size(&result, agg_len);
 //        dir_set_big(&result, 0);
 //        dir_set_size(&result, 7);
                 //these I just leave unchanged as the first req of wiki
@@ -1255,8 +1255,8 @@ CacheVC::openReadStartHead(int event, Event *e)
             uint64_t aio_offset = (key.b[0] & (vol->len-1) & (~ (1ull << 30)))>>CACHE_BLOCK_SHIFT;
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
             dir_set_offset(&dir, aio_offset);
-            uint64_t read_byte = vdir_value_len + VDOC_HEADER_LEN;
-        dir_set_approx_size(&dir, read_byte);
+        uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
+        dir_set_approx_size(&dir, agg_len);
 //        dir_set_offset(&result, 1);
 //        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
             //the normal offset
