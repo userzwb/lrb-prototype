@@ -2290,10 +2290,6 @@ CacheVC::handleReadDone(int event, Event *e)
 //      goto Ldone;
     }
 
-    if (buf->block_size() < VDOC_HEADER_LEN) {
-        printf("ZHENYU fatal: buf length smaller than doc header length\n");
-        abort();
-    }
     doc = reinterpret_cast<Doc *>(buf->data());
     //todo: even write need to fake the data, but no length to fake. If don't fake will crash
     //zhenyu: only fake read from disk
@@ -2328,7 +2324,7 @@ CacheVC::handleReadDone(int event, Event *e)
         alt->m_object_size[1] = pi[1];
     } else {
         //true read, and we don't know first_key_value_len, so not fake it
-        int a = 1;
+//        int a = 1;
     }
 //    else {
 //        unsigned char *p = (unsigned char *)(doc->hdr());
