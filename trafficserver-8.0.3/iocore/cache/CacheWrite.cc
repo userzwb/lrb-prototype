@@ -108,6 +108,7 @@ CacheVC::updateVector(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
       if (alternate_index >= 0) {
         alternate.copy_frag_offsets_from(write_vector->get(alternate_index));
       }
+      //zhenyu: single doc goes here
       alternate_index = write_vector->insert(&alternate, alternate_index);
     }
 
@@ -813,6 +814,21 @@ agg_copy(char *p, CacheVC *vc)
         }
         ink_assert(!(((uintptr_t)&doc->hdr()[0]) & HDR_PTR_ALIGNMENT_MASK));
         ink_assert(vc->header_len == vc->write_vector->marshal(doc->hdr(), vc->header_len));
+//        char * tmp = new char[vc->header_len];
+//        memcpy(tmp, doc->hdr(), vc->header_len);
+//        HTTPInfo::unmarshal(tmp, vc->header_len, nullptr);
+//        char * tmp1 = new char[vc->header_len];
+//        memset(tmp1, 0, vc->header_len);
+//        HTTPInfo tmp2;
+//        tmp2.get_handle(tmp, vc->header_len);
+//        auto t3 = tmp2.marshal_length();
+//        tmp2.push_frag_offset(123);
+//        auto t4 = tmp2.marshal_length();
+//        for (int i = 0; i < 198; ++i)
+//            tmp2.push_frag_offset(i);
+//        auto t5 = tmp2.marshal_length();
+//        tmp2.marshal(tmp1, vc->header_len);
+//        int a = 1;
       } else {
         memcpy(doc->hdr(), vc->header_to_write, vc->header_len);
       }
@@ -1310,6 +1326,7 @@ CacheVC::openWriteClose(int event, Event *e)
       }
       return do_write_lock_call();
     } else {
+        //this is a small doc
       return openWriteCloseHead(event, e);
     }
   } else {
@@ -1770,6 +1787,7 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
     ink_assert(!(c->update_key == zero_key));
     c->update_len = info->object_size_get();
   } else {
+      //zhenyu: write a new doc
     c->base_stat = cache_write_active_stat;
   }
   CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
@@ -1795,6 +1813,7 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
           goto Lfailure;
         }
         // document doesn't exist, begin write
+        // zhenyu: small doc path
         goto Lmiss;
       } else {
         c->od->reading_vec = true;
