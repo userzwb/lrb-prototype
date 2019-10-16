@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #TODO: restore original config
-traces=(wc1400m_ts ntg1_400m_16mb)
+traces=(wiki_1400m_4mb ntg1_400m_4mb)
 #traces=(ntg1_400m_16mb)
 
 algs=(fifo lru wlc)
@@ -16,7 +16,7 @@ for trace in "${traces[@]}"; do
 for request_rate in "${request_rates[@]}"; do
   trail=0
   suffix=${trace}_${alg}_${request_rate}_${trail}
-  echo "bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh "$trace" "$alg" "$request_rate" "$trail" &> "/tmp/${suffix}_prototype.log  >>  /home/zhenyus/webtracereplay/scripts/measurements.job
+  echo "bash -x /home/zhenyus/webtracereplay/scripts/measure.sh "$trace" "$alg" "$request_rate" "$trail" &> "/tmp/${suffix}_prototype.log  >>  /home/zhenyus/webtracereplay/scripts/measurements.job
 done
 done
 done
@@ -28,7 +28,7 @@ for trail in "${trails[@]}"; do
 for trace in "${traces[@]}"; do
 for request_rate in "${request_rates[@]}"; do
   suffix=${trace}_${alg}_${request_rate}_${trail}
-  echo "bash -x /home/zhenyus/webtracereplay/scripts/measure_new.sh "$trace" "$alg" "$request_rate" "$trail" &> "/tmp/${suffix}_prototype.log  >>  /home/zhenyus/webtracereplay/scripts/measurements.job
+  echo "bash -x /home/zhenyus/webtracereplay/scripts/measure.sh "$trace" "$alg" "$request_rate" "$trail" &> "/tmp/${suffix}_prototype.log  >>  /home/zhenyus/webtracereplay/scripts/measurements.job
 done
 done
 done
