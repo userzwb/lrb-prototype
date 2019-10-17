@@ -181,7 +181,7 @@ echo "start measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" /home/zhenyus/webtracereplay/scripts/segment_static.sh warmup_${suffix} &
 #TODO: remove this timeout later
-ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; timeout 10 ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/throughput_warmup_"${suffix}".log ../log/latency_warmup_"${suffix}".log 0"
+ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/throughput_warmup_"${suffix}".log ../log/latency_warmup_"${suffix}".log 0"
 #ssh "$proxy_ip_external" "cd /home/zhenyus/webtracereplay/client; ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/warmup_throughput_"${suffix}".log ../log/warmup_latency_"${suffix}".log 0"
 sleep 15 # for sync
 echo "stop measuring segment stat"
@@ -201,8 +201,7 @@ echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal 'rm /home/zhenyus/webtracereplay/log/*'
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 10 ./client ../"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/throughput_eval_"${suffix}".log ../log/latency_eval_"${suffix}".log "${real_time}
-#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 3600 ./client ../"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/eval_throughput_"${suffix}".log ../log/eval_latency_"${suffix}".log "${real_time}
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 3600 ./client ../"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/throughput_eval_"${suffix}".log ../log/latency_eval_"${suffix}".log "${real_time}
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
@@ -216,11 +215,12 @@ scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/
 
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 scp -3 "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
+#TODO: multiple scp can happens at the same time
 scp ~/gcp_log/* fat:~/webcachesim/gcp_log/
 
 echo "deleting vms"
 #TODO: enable deleting
-#gcloud compute instances delete --quiet $origin_name
-#gcloud compute instances delete --quiet $client_name
-#gcloud compute instances delete --quiet $proxy_name
+gcloud compute instances delete --quiet $origin_name
+gcloud compute instances delete --quiet $client_name
+gcloud compute instances delete --quiet $proxy_name
 
