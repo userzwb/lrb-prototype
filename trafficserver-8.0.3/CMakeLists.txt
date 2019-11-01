@@ -1150,12 +1150,7 @@ add_library(libcache SHARED
         iocore/cache/RamCacheCLFUS.cc
         iocore/cache/RamCacheLRU.cc
         iocore/cache/Store.cc
-        iocore/cache/P_VDiskCache.h
-        iocore/cache/VDiskCacheLRU.cc
-        iocore/cache/VDiskCacheWLC.cc
-        iocore/cache/VDiskCacheStatic.cc
-        iocore/cache/VDiskCacheRandom.cc
-)
+        )
 
 add_library(libtsconfig SHARED
         lib/tsconfig/Errata.cc

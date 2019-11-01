@@ -24,6 +24,7 @@
 #pragma once
 
 #include <atomic>
+#include <webcachesim/api.h>
 
 #define CACHE_BLOCK_SHIFT 9
 #define CACHE_BLOCK_SIZE (1 << CACHE_BLOCK_SHIFT) // 512, smallest sector size
@@ -153,7 +154,7 @@ struct Vol : public Continuation {
 
   OpenDir open_dir;
   RamCache *ram_cache            = nullptr;
-  VDiskCache *vdisk_cache       = nullptr;
+  webcachesim::Interface *vdisk_cache       = nullptr;
   int evacuate_size              = 0;
   DLL<EvacuationBlock> *evacuate = nullptr;
   DLL<EvacuationBlock> lookaside[LOOKASIDE_SIZE];

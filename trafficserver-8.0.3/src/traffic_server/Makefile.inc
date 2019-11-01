@@ -91,7 +91,8 @@ traffic_server_traffic_server_LDADD = \
 	@OPENSSL_LIBS@ \
 	@YAMLCPP_LIBS@ \
 	-lm \
-	-l_lightgbm
+	-l_lightgbm \
+	-lwebcachesim
 
 if IS_DARWIN
 traffic_server_traffic_server_LDADD += $(LUAJIT_DARWIN_LDFLAGS)

@@ -1407,7 +1407,7 @@ Lagain:
   if (vio.ntodo() <= 0) {
     called_user = 1;
       //zhenyu: transfer is finished. Admit the object
-      vol->vdisk_cache->admit(&first_key, vio.nbytes);
+      vol->vdisk_cache->admit(first_key.u64[0], vio.nbytes);
     if (calluser(VC_EVENT_WRITE_COMPLETE) == EVENT_DONE) {
       return EVENT_DONE;
     }

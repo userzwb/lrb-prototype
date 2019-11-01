@@ -120,7 +120,7 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     //create the read only when key in virtual disk
     if (lock.is_locked()) {
 //        dir_probe(key, vol, &result, &last_collision);
-        vdir_value_len = vol->vdisk_cache->lookup(key);
+        vdir_value_len = vol->vdisk_cache->lookup(key->u64[0]);
     }
     if (!lock.is_locked() || vdir_value_len) {
         c = new_CacheVC(cont);
@@ -1243,7 +1243,7 @@ CacheVC::openReadStartHead(int event, Event *e)
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
 //    dir_probe(&key, vol, &dir, &last_collision);
-    uint64_t vdir_value_len = vol->vdisk_cache->lookup(&key);
+    uint64_t vdir_value_len = vol->vdisk_cache->lookup(key.u64[0]);
     if (vdir_value_len) {
       first_dir = dir;
       first_key_value_len = vdir_value_len;

@@ -29,7 +29,6 @@ AM_CPPFLAGS += \
 	-I$(abs_top_srcdir)/mgmt/utils \
 	$(TS_INCLUDES)
 
-
 noinst_LIBRARIES = libinkcache.a
 
 libinkcache_a_SOURCES = \
@@ -59,12 +58,7 @@ libinkcache_a_SOURCES = \
 	P_RamCache.h \
 	RamCacheCLFUS.cc \
 	RamCacheLRU.cc \
-	Store.cc \
-	P_VDiskCache.h \
-	VDiskCacheLRU.cc \
-	VDiskCacheWLC.cc \
-	VDiskCacheStatic.cc \
-	VDiskCacheRandom.cc
+	Store.cc
 
 if BUILD_TESTS
 libinkcache_a_SOURCES += \
