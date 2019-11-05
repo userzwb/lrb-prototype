@@ -62,6 +62,7 @@ int64_t cache_config_ram_cache_size            = AUTO_SIZE_RAM_CACHE;
 int cache_config_ram_cache_algorithm           = 1;
 char * cache_config_vdisk_cache_algorithm      = nullptr;
 int cache_config_vdisk_cache_memory_window = 0;
+int cache_config_vdisk_cache_n_extra_fields = 0;
 int cache_config_ram_cache_compress            = 0;
 int cache_config_ram_cache_compress_percent    = 90;
 int cache_config_ram_cache_use_seen_filter     = 1;
@@ -914,8 +915,11 @@ CacheProcessor::cacheInitialized()
           gnvol.load());
 
     int64_t ram_cache_bytes = 0;
+    std::map<std::string, std::string> params;
+    params["memory_window"] = std::to_string(cache_config_vdisk_cache_memory_window);
+    params["n_extra_fields"] = std::to_string(cache_config_vdisk_cache_n_extra_fields);
 
-    if (gnvol) {
+      if (gnvol) {
       // new ram_caches, with algorithm from the config
       for (i = 0; i < gnvol; i++) {
         //zhenyu: init VDiskCache
@@ -930,8 +934,9 @@ CacheProcessor::cacheInitialized()
         }
           gvol[i]->vdisk_cache = new webcachesim::Interface(cache_config_vdisk_cache_algorithm,
                   gvol[i]->len,
-                  cache_config_vdisk_cache_memory_window
+                  params
           );
+          gvol[i]->vdisk_cache->set_n_extra_features(cache_config_vdisk_cache_n_extra_fields);
       }
       // let us calculate the Size
       if (cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE) {
@@ -3227,6 +3232,7 @@ ink_cache_init(ModuleVersion v)
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_algorithm, "proxy.config.cache.ram_cache.algorithm");
   REC_EstablishStaticConfigStringAlloc(cache_config_vdisk_cache_algorithm, "proxy.config.cache.vdisk_cache.algorithm");
   REC_EstablishStaticConfigInt32(cache_config_vdisk_cache_memory_window, "proxy.config.cache.vdisk_cache.memory_window");
+  REC_EstablishStaticConfigInt32(cache_config_vdisk_cache_n_extra_fields, "proxy.config.cache.vdisk_cache.n_extra_fields");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress, "proxy.config.cache.ram_cache.compress");
   REC_EstablishStaticConfigInt32(cache_config_ram_cache_compress_percent, "proxy.config.cache.ram_cache.compress_percent");
   REC_ReadConfigInt32(cache_config_ram_cache_use_seen_filter, "proxy.config.cache.ram_cache.use_seen_filter");

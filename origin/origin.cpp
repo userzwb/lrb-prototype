@@ -11,6 +11,7 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <sstream>
 
 
 using namespace std;
@@ -18,8 +19,14 @@ using namespace std;
 // config
 int numberOfThreads = 16;
 int latency = 0;
+//assume size <= 4GB
+struct FeatureT {
+    uint64_t size;
+    vector<uint16_t> extra_features;
+};
+
 // read in map: object id-> object size
-unordered_map<long, long> osizes;
+unordered_map<long, FeatureT> feature_map;
 // block of data used as byte content of object
 char dataBig[32768];
 char dataMedium[2048];
@@ -27,6 +34,8 @@ char dataSmall[64];
 std::atomic<long> bytes;
 std::atomic<long> reqs;
 volatile bool running;
+
+int n_extra_features = 0;
 
 void serverThread() {
     FCGX_Request request;
@@ -38,10 +47,11 @@ void serverThread() {
         if (uri.length() > 1) {
             uri.erase(0, 1);
             const long id = atol(uri.c_str());
-            if (osizes.count(id) > 0) {
+            auto it = feature_map.find(id);
+            if (it != feature_map.end()) {
                 if (latency)
                     this_thread::sleep_for(chrono::milliseconds(latency));
-                const long csize = osizes[id];
+                const long csize = it->second.size;
 
                 //logging
                 reqs++;
@@ -49,8 +59,13 @@ void serverThread() {
 
                 // send along content length and type
                 FCGX_FPrintF(request.out, "Content-length: %ld\r\n"
-                                          "Content-type: application/octet-stream\r\n"
-                                          "\r\n", csize);
+                                          "Content-type: application/octet-stream\r\n", csize);
+                if (n_extra_features) {
+                    FCGX_FPrintF(request.out, "X-extra-fields: ");
+                    for (int i = 0; i < n_extra_features; ++i)
+                        FCGX_FPrintF(request.out, "%04x", it->second.extra_features[i]);
+                }
+                FCGX_FPrintF(request.out, "\r\n\r\n");
                 // write bytes 1) in large/medium/small blocks and 2) the remaining bytes individually
                 ldiv_t divresultBig;
                 divresultBig = div(csize, 32768L);
@@ -122,11 +137,35 @@ int main(int argc, char *argv[]) {
     ifstream infile(path);
     if (!infile) {
         cerr << "Error: cannot opening file " << path << endl;
-        abort();
+        exit(-1);
     }
-    long id, size;
+
+    {
+        //get whether file is in a correct format
+        std::string line;
+        getline(infile, line);
+        istringstream iss(line);
+        uint64_t tmp;
+        int counter = 0;
+        while (iss >> tmp) {
+            ++counter;
+        }
+        infile.clear();
+        infile.seekg(0, ios::beg);
+        n_extra_features = counter - 2;
+        cerr<<"n_extra_fields: "<<n_extra_features<<endl;
+    }
+
+    long id;
+    uint64_t size;
     while (infile >> id >> size) {
-        osizes[id] = size;
+        FeatureT f = {.size=size};
+        uint16_t extra_feature;
+        for (int i = 0; i < n_extra_features; ++i) {
+            infile >> extra_feature;
+            f.extra_features.emplace_back(extra_feature);
+        }
+        feature_map[id] = f;
     }
 
 
