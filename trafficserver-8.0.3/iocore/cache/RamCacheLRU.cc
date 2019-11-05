@@ -127,13 +127,6 @@ RamCacheLRU::get(CryptoHash *key, Ptr<IOBufferData> *ret_data, uint32_t auxkey1,
   if (!max_bytes) {
     return 0;
   }
-//    static int tmp_c = 0;
-//  if (!(tmp_c++%100000)) {
-//      std::cerr << "\nsize: " << size() << std::endl
-//                << "nbuckets: " << nbuckets << std::endl
-//                << "ibuckets: " << ibuckets << std::endl;
-//  }
-
   uint32_t i          = key->slice32(3) % nbuckets;
   RamCacheLRUEntry *e = bucket[i].head;
   while (e) {

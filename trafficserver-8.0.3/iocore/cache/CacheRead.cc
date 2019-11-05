@@ -113,6 +113,21 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
       //zhenyus: does this lock the volume?
       //TODO: can simply add blocking LOCK here
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
+    if (!vol->vdisk_cache) {
+    if (!lock.is_locked() || (od = vol->open_read(key)) || dir_probe(key, vol, &result, &last_collision)) {
+      c            = new_CacheVC(cont);
+      c->first_key = c->key = c->earliest_key = *key;
+      c->vol                                  = vol;
+      c->vio.op                               = VIO::READ;
+      c->base_stat                            = cache_read_active_stat;
+      CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
+      c->request.copy_shallow(request);
+      c->frag_type = CACHE_FRAG_TYPE_HTTP;
+      c->params    = params;
+      c->od        = od;
+    }
+    }
+    else {
 
     //zhenyu: need to in vdisk in order to be probe
     //assume od always return null
@@ -166,26 +181,25 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
 //            }
         }
     }
+    }
 
     if (!lock.is_locked()) {
       SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
       CONT_SCHED_LOCK_RETRY(c);
       return &c->_action;
     }
-
     if (!c) {
-        goto Lmiss;
+      goto Lmiss;
     }
-
     if (c->od) {
       goto Lwriter;
     }
-
     // hit
     c->dir = c->first_dir = result;
     c->last_collision     = last_collision;
     SET_CONTINUATION_HANDLER(c, &CacheVC::openReadStartHead);
     switch (c->do_read_call(&c->key)) {
+        //zhenyu: EVENT_DONE should be the expected end signal?
     case EVENT_DONE:
       return ACTION_RESULT_DONE;
     case EVENT_RETURN:
@@ -1093,15 +1107,14 @@ CacheVC::openReadStartHead(int event, Event *e)
     // be evacuated as it is read
 //        //TODO: zhenyu: how to handle this for fake obj?
 //because dir is determinstically faked, this can cause overflow
-//    if (f.doc_from_ram_cache) {
-//    if (!dir_agg_valid(vol, &dir)) {
-//      // a directory entry which is nolonger valid may have been overwritten
-//      if (!dir_valid(vol, &dir)) {
-//        last_collision = nullptr;
-//      }
-//      goto Lread;
-//    }
-//    }
+    if (!vol->vdisk_cache)
+    if (!dir_agg_valid(vol, &dir)) {
+      // a directory entry which is nolonger valid may have been overwritten
+      if (!dir_valid(vol, &dir)) {
+        last_collision = nullptr;
+      }
+      goto Lread;
+    }
     doc = (Doc *)buf->data();
     if (doc->magic != DOC_MAGIC) {
       char tmpstring[CRYPTO_HEX_SIZE];
@@ -1181,6 +1194,7 @@ CacheVC::openReadStartHead(int event, Event *e)
         }
         goto Ldone;
       }
+
       alternate.copy_shallow(alternate_tmp);
       alternate.object_key_get(&key);
       doc_len = alternate.object_size_get();
@@ -1242,6 +1256,17 @@ CacheVC::openReadStartHead(int event, Event *e)
       SET_HANDLER(&CacheVC::openReadFromWriter);
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
+    if (!vol->vdisk_cache) {
+    if (dir_probe(&key, vol, &dir, &last_collision)) {
+      first_dir = dir;
+      int ret   = do_read_call(&key);
+      if (ret == EVENT_RETURN) {
+        goto Lcallreturn;
+      }
+      return ret;
+    }
+    }
+    else {
 //    dir_probe(&key, vol, &dir, &last_collision);
     uint64_t vdir_value_len = vol->vdisk_cache->lookup(key.u64[0]);
     if (vdir_value_len) {
@@ -1285,7 +1310,7 @@ CacheVC::openReadStartHead(int event, Event *e)
         goto Lcallreturn;
       }
       return ret;
-    }
+    }}
   }
 #pragma clang diagnostic pop
 Ldone:

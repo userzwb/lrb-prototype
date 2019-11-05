@@ -1118,7 +1118,8 @@ CacheVC::openWriteCloseDir(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED *
 /*
  * zhenyu: dir is written, ready to close VC. Can instrument here?
  */
-{cancel_trigger();
+{
+  cancel_trigger();
   {
     CACHE_TRY_LOCK(lock, vol->mutex, mutex->thread_holding);
     if (!lock.is_locked()) {
@@ -1126,18 +1127,20 @@ CacheVC::openWriteCloseDir(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED *
       ink_assert(!is_io_in_progress());
       VC_SCHED_LOCK_RETRY();
     }
-      //TODO: parsing extra fields
-    auto resp = std::string(alternate.m_alt->m_response_hdr.m_http->u.resp.m_ptr_reason);
-    auto i = resp.find(webcachesim::mime_field);
-    int &n_extra_fields = vol->vdisk_cache->n_extra_features;
-    auto *a = new uint16_t[n_extra_fields];
-    for (int j = 0; j < n_extra_fields; ++j) {
-        std::string sub = resp.substr(i+4*j+webcachesim::mime_field.size(), 4);
-        a[j] = std::stoi(sub,nullptr, 16);
+    if (vol->vdisk_cache) {
+        //TODO: parsing extra fields
+        auto resp = std::string(alternate.m_alt->m_response_hdr.m_http->u.resp.m_ptr_reason);
+        auto i = resp.find(webcachesim::mime_field);
+        int &n_extra_fields = vol->vdisk_cache->n_extra_features;
+        auto *a = new uint16_t[n_extra_fields];
+        for (int j = 0; j < n_extra_fields; ++j) {
+            std::string sub = resp.substr(i + 4 * j + webcachesim::mime_field.size(), 4);
+            a[j] = std::stoi(sub, nullptr, 16);
+        }
+        //zhenyu: transfer is finished. Admit the object
+        vol->vdisk_cache->admit(first_key.u64[0], vio.nbytes, a);
+        delete[] a;
     }
-      //zhenyu: transfer is finished. Admit the object
-    vol->vdisk_cache->admit(first_key.u64[0], vio.nbytes, a);
-    delete[] a;
     vol->close_write(this);
     if (closed < 0 && fragment) {
       dir_delete(&earliest_key, vol, &earliest_dir);
@@ -1183,7 +1186,6 @@ CacheVC::openWriteCloseDir(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED *
     vio.cont->handleEvent(VC_EVENT_WRITE_COMPLETE, (void *)&vio);
     recursive--;
   }
-
   return free_CacheVC(this);
 }
 

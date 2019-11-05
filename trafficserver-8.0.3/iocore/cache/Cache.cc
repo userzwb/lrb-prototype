@@ -915,14 +915,14 @@ CacheProcessor::cacheInitialized()
           gnvol.load());
 
     int64_t ram_cache_bytes = 0;
+    //zhenyu: init VDiskCache
     std::map<std::string, std::string> params;
     params["memory_window"] = std::to_string(cache_config_vdisk_cache_memory_window);
     params["n_extra_fields"] = std::to_string(cache_config_vdisk_cache_n_extra_fields);
 
-      if (gnvol) {
+    if (gnvol) {
       // new ram_caches, with algorithm from the config
       for (i = 0; i < gnvol; i++) {
-        //zhenyu: init VDiskCache
         switch (cache_config_ram_cache_algorithm) {
         default:
         case RAM_CACHE_ALGORITHM_CLFUS:
@@ -932,11 +932,14 @@ CacheProcessor::cacheInitialized()
           gvol[i]->ram_cache = new_RamCacheLRU();
           break;
         }
-          gvol[i]->vdisk_cache = new webcachesim::Interface(cache_config_vdisk_cache_algorithm,
-                  gvol[i]->len,
-                  params
-          );
-          gvol[i]->vdisk_cache->set_n_extra_features(cache_config_vdisk_cache_n_extra_fields);
+        //zhenyu: init VDiskCache
+        if (cache_config_vdisk_cache_algorithm) {
+            gvol[i]->vdisk_cache = new webcachesim::Interface(cache_config_vdisk_cache_algorithm,
+                                                              gvol[i]->len,
+                                                              params
+            );
+            gvol[i]->vdisk_cache->set_n_extra_features(cache_config_vdisk_cache_n_extra_fields);
+        }
       }
       // let us calculate the Size
       if (cache_config_ram_cache_size == AUTO_SIZE_RAM_CACHE) {
@@ -2270,7 +2273,18 @@ CacheVC::handleReadDone(int event, Event *e)
     if (!lock.is_locked()) {
       VC_SCHED_LOCK_RETRY();
     }
-    if (!io.ok()) {
+    if (!cache_config_vdisk_cache_algorithm) {
+        if ((!dir_valid(vol, &dir)) || (!io.ok())) {
+            if (!io.ok()) {
+                Debug("cache_disk_error", "Read error on disk %s\n \
+	    read range : [%" PRIu64 " - %" PRIu64 " bytes]  [%" PRIu64 " - %" PRIu64 " blocks] \n",
+                      vol->hash_text.get(), (uint64_t)io.aiocb.aio_offset, (uint64_t)io.aiocb.aio_offset + io.aiocb.aio_nbytes,
+                      (uint64_t)io.aiocb.aio_offset / 512, (uint64_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) / 512);
+            }
+            goto Ldone;
+        }
+    }
+    else if (!io.ok()) {
         printf("zhenyu: read error on disk\n");
 //      abort();
         Debug("cache_disk_error", "Read error on disk %s\n \
@@ -2281,7 +2295,7 @@ CacheVC::handleReadDone(int event, Event *e)
     }
 
     doc = reinterpret_cast<Doc *>(buf->data());
-    if (!f.doc_from_ram_cache) {
+    if (vol->vdisk_cache && !f.doc_from_ram_cache) {
         //this is probably random read from disk, so we fake it
         doc->magic = DOC_MAGIC;
         doc->total_len = first_key_value_len;
@@ -2473,18 +2487,18 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
    */
   // see if its in the aggregation buffer
   //zhenyu: never in aggregation buffer
-//  if (dir_agg_buf_valid(vol, &dir)) {
-//    int agg_offset = vol->vol_offset(&dir) - vol->header->write_pos;
-//    buf            = new_IOBufferData(iobuffer_size_to_index(io.aiocb.aio_nbytes, MAX_BUFFER_SIZE_INDEX), MEMALIGNED);
-//    ink_assert((agg_offset + io.aiocb.aio_nbytes) <= (unsigned)vol->agg_buf_pos);
-////    doc will be reset at handleReadDone
-//    char *doc = buf->data();
-//    char *agg = vol->agg_buffer + agg_offset;
-//    memcpy(doc, agg, io.aiocb.aio_nbytes);
-//    io.aio_result = io.aiocb.aio_nbytes;
-//    SET_HANDLER(&CacheVC::handleReadDone);
-//    return EVENT_RETURN;
-//  }
+  if (!vol->vdisk_cache)
+  if (dir_agg_buf_valid(vol, &dir)) {
+    int agg_offset = vol->vol_offset(&dir) - vol->header->write_pos;
+    buf            = new_IOBufferData(iobuffer_size_to_index(io.aiocb.aio_nbytes, MAX_BUFFER_SIZE_INDEX), MEMALIGNED);
+    ink_assert((agg_offset + io.aiocb.aio_nbytes) <= (unsigned)vol->agg_buf_pos);
+    char *doc = buf->data();
+    char *agg = vol->agg_buffer + agg_offset;
+    memcpy(doc, agg, io.aiocb.aio_nbytes);
+    io.aio_result = io.aiocb.aio_nbytes;
+    SET_HANDLER(&CacheVC::handleReadDone);
+    return EVENT_RETURN;
+  }
 
   io.aiocb.aio_fildes = vol->fd;
   io.aiocb.aio_offset = vol->vol_offset(&dir);
