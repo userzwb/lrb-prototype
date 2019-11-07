@@ -397,9 +397,7 @@ cache_op(AIOCallbackInternal *op)
   for (; op; op = (AIOCallbackInternal *)op->then) {
     ink_aiocb *a = &op->aiocb;
     ssize_t err, res = 0;
-    //zhenyu: 4K alignment
-    a->aio_offset = (a->aio_offset >> 12) << 12;
-    a->aio_nbytes = (a->aio_nbytes >> 12) << 12;
+
     while (a->aio_nbytes - res > 0) {
       do {
         if (read) {
