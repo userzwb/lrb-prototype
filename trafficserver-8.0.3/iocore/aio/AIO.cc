@@ -407,7 +407,6 @@ cache_op(AIOCallbackInternal *op)
         }
       } while ((err < 0) && (errno == EINTR || errno == ENOBUFS || errno == ENOMEM));
       if (err <= 0) {
-//          abort();
         Warning("cache disk operation failed %s %zd %d\n", (a->aio_lio_opcode == LIO_READ) ? "READ" : "WRITE", err, errno);
         op->aio_result = -errno;
         return (err);
