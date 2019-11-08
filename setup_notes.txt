@@ -57,12 +57,6 @@ sudo apt install spawn-fcgi
 sudo apt install libfcgi-dev
 sudo ufw allow 7000
 
-cd origin
-make
-
-spawn-fcgi -a 127.0.0.1 -p 9000 -n origin/origin origin_wc200m.tr
-# zhenyus: spawn-fcgi -a 127.0.0.1 -p 9000 -n origin/origin origin.tr
-
 # origin also needs nginx running
 sudo apt install nginx
 
@@ -76,13 +70,16 @@ sudo nginx -c ~/webtracereplay/server/nginx.conf
 sudo nginx -s stop
 
 
+cd origin
+make
+spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../wiki_1400m_4mb_origin.tr 1024 0
+
+
+
 #### on client
 
 sudo apt install libcurl4-gnutls-dev
 
 cd client
 make
-
-./client /scratch2/traces/exp/client_wc200m.tr 10 127.0.0.1:6000/ outtp outhist
-# zhenyus: ./client/client client_1.tr 1 127.0.0.1:6000/ throughput.log latency.log
-# pni ./client/client client_100m.tr 256 n01:6000/ throughput.log latency.log 0
+./client ../wiki_1400m_4mb_warmup.tr 10 127.0.0.1:6000/ throughput.log latency.log 0
