@@ -118,6 +118,11 @@ if [[ ${test_bed} = 'gcp' ]]; then
     sleep 5
   done
 
+  echo "updating repo"
+  ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
+  ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
+  ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
+
   #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
   #use single SSD
   if [[ ${trace} = "wiki_1400m_4mb" ]]; then
@@ -147,6 +152,11 @@ elif [[ ${test_bed} = "pni" ]]; then
   client_ip_internal=10.1.255.251
   origin_ip_internal=10.1.255.250
 
+  echo "updating repo"
+  ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
+  ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
+  ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
+
   #use single SSD
   ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_pni.config /opt/ts/etc/trafficserver/storage.config"
   home=/usr/people/zhenyus
@@ -156,10 +166,6 @@ else
    exit 1
 fi
 
-echo "updating repo"
-ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
-ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
 
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
 ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.ram_cache.size.*/CONFIG proxy.config.cache.ram_cache.size INT "${ram_size}"/g' /opt/ts/etc/trafficserver/records.config"
