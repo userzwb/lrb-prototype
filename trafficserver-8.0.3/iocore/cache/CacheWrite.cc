@@ -754,6 +754,7 @@ agg_copy(char *p, CacheVC *vc)
     ink_assert(vol->round_to_approx_size(len) == vc->agg_len);
     // update copy of directory entry for this document
     dir_set_approx_size(&vc->dir, vc->agg_len);
+    // zhenyu: offset is set here
     dir_set_offset(&vc->dir, vol->offset_to_vol_offset(o));
     ink_assert(vol->vol_offset(&vc->dir) < (vol->skip + vol->len));
     dir_set_phase(&vc->dir, vol->header->phase);
@@ -1822,6 +1823,7 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
       if (c->od->has_multiple_writers()) {
         goto Lmiss;
       }
+      if (!vol->vdisk_cache) {
       if (!dir_probe(key, c->vol, &c->dir, &c->last_collision)) {
         if (c->f.update) {
           // fail update because vector has been GC'd
@@ -1844,6 +1846,17 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
         default:
           return &c->_action;
         }
+      }
+      } else {
+          if (c->f.update) {
+              // fail update because vector has been GC'd
+              // This situation can also arise in openWriteStartDone
+              err = ECACHE_NO_DOC;
+              goto Lfailure;
+          }
+          // document doesn't exist, begin write
+          // zhenyu: small doc path
+          goto Lmiss;
       }
     }
     // missed lock

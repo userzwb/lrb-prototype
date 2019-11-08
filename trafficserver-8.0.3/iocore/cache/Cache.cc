@@ -2285,7 +2285,7 @@ CacheVC::handleReadDone(int event, Event *e)
         }
     }
     else if (!io.ok()) {
-        printf("zhenyu: read error on disk\n");
+        printf("zhenyu: read error on disk. offset: %lx, length: %lx\n", io.aiocb.aio_offset, io.aiocb.aio_nbytes);
 //      abort();
         Debug("cache_disk_error", "Read error on disk %s\n \
 	    read range : [%" PRIu64 " - %" PRIu64 " bytes]  [%" PRIu64 " - %" PRIu64 " blocks] \n",

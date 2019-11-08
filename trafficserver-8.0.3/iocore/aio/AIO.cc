@@ -397,9 +397,7 @@ cache_op(AIOCallbackInternal *op)
   for (; op; op = (AIOCallbackInternal *)op->then) {
     ink_aiocb *a = &op->aiocb;
     ssize_t err, res = 0;
-    //zhenyu: 4K alignment
-    a->aio_offset = (a->aio_offset >> 12) << 12;
-    a->aio_nbytes = (a->aio_nbytes >> 12) << 12;
+
     while (a->aio_nbytes - res > 0) {
       do {
         if (read) {
@@ -409,7 +407,6 @@ cache_op(AIOCallbackInternal *op)
         }
       } while ((err < 0) && (errno == EINTR || errno == ENOBUFS || errno == ENOMEM));
       if (err <= 0) {
-//          abort();
         Warning("cache disk operation failed %s %zd %d\n", (a->aio_lio_opcode == LIO_READ) ? "READ" : "WRITE", err, errno);
         op->aio_result = -errno;
         return (err);

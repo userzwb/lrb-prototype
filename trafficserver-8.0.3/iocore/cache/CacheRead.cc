@@ -150,35 +150,21 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
         c->od = nullptr;
         if (lock.is_locked()) {
             c->first_key_value_len = vdir_value_len;
-
-                //random value, 4K aligned, don't read around as max is 16MB
-                //zhenyu: this offset's unit is block
-//                uint64_t random_offset = key->b[0] & (vol->len-1) & (~ (1ull << 30));
-//                dir_set_offset(&result, vol->offset_to_vol_offset(random_offset));
-//            std::cout<<"o0"<<vol->offset_to_vol_offset(random_offset)*512<<std::endl;
-            uint64_t aio_offset = (key->b[0] & (vol->len-1) & (~ (1ull << 30)))>>CACHE_BLOCK_SHIFT;
-                dir_set_offset(&result, aio_offset);
-                //the normal offset
-//        dir_set_offset(&result, 1);
-                uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
-                dir_set_approx_size(&result, agg_len);
-//        dir_set_big(&result, 0);
-//        dir_set_size(&result, 7);
-                //these I just leave unchanged as the first req of wiki
-                dir_set_tag(&result, key->slice32(2));
-                //zhenyu: phase is not important as we comment phase checking and random read
-                dir_set_phase(&result, 0);
-                dir_set_head(&result, 1);
-                dir_set_pinned(&result, 0);
-                dir_set_token(&result, 0);
-                dir_set_next(&result, 0);
-//            } else {
-                //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
-//        c->od        = od;
-                //if the dir is crashed
-//                if (dir_approx_size(&result) < VDOC_HEADER_LEN)
-//                    dir_set_approx_size(&result, vdir_value_len + VDOC_HEADER_LEN);
-//            }
+//            random value based on key; not reading the tail 1GB to prevent looping read;
+//            4K aligned; relative to start positive
+            uint64_t aio_offset = (key->b[0] & (vol->len-1) & (~ (1ull << 30)) & (~ (0xfffull))) + vol->start;
+            dir_set_offset(&result, vol->offset_to_vol_offset(aio_offset));
+            uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
+//            assert(!(vol->vol_offset(&result) & 0xfff));
+            dir_set_approx_size(&result, agg_len);
+            //these I just leave unchanged as the first req of wiki
+            dir_set_tag(&result, key->slice32(2));
+            //zhenyu: phase is not important as we comment phase checking and do random read
+            dir_set_phase(&result, 0);
+            dir_set_head(&result, 1);
+            dir_set_pinned(&result, 0);
+            dir_set_token(&result, 0);
+            dir_set_next(&result, 0);
         }
     }
     }
@@ -1272,39 +1258,19 @@ CacheVC::openReadStartHead(int event, Event *e)
     if (vdir_value_len) {
       first_dir = dir;
       first_key_value_len = vdir_value_len;
-
-//        if (!dir.w[0] && !dir.w[1] && !dir.w[2] && !dir.w[3] && !dir.w[4]) {
-//        empty.
-            //random value from 127 GB space, 4K aligned, don't read around as max is 16MB
-            //zhenyu: this offset's unit is block
-//        uint64_t random_offset = key.b[0] & (vol->len-1) & (~ (1ull << 30));
-//        dir_set_offset(&dir, vol->offset_to_vol_offset(random_offset));
-//        std::cout<<"o1"<<vol->offset_to_vol_offset(random_offset)*512<<std::endl;
-        uint64_t aio_offset = (key.b[0] & (vol->len-1) & (~ (1ull << 30)))>>CACHE_BLOCK_SHIFT;
-        dir_set_offset(&dir, aio_offset);
-        uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
-        dir_set_approx_size(&dir, agg_len);
-//        dir_set_offset(&result, 1);
-//        uint64_t aio_offset = (key->b[0] & 0xffffff000ull 0x1fbffff000ull);
-            //the normal offset
-//        dir_set_offset(&result, 1);
-//        dir_set_big(&result, 0);
-//        dir_set_size(&result, 7);
-            //these I just leave unchanged as the first req of wiki
-        dir_set_tag(&dir, first_key.slice32(2));
-        dir_set_phase(&dir, 0);
-            dir_set_head(&dir, 1);
-            dir_set_pinned(&dir, 0);
-            dir_set_token(&dir, 0);
-            dir_set_next(&dir, 0);
-//        } else {
-            //the reason don't handle here: use the original Dir, and hope can work with ram_cache and write_buffer
-//        c->od        = od;
-            //if the dir is crashed
-//            if (dir_approx_size(&dir) < VDOC_HEADER_LEN)
-//                dir_set_approx_size(&dir, vdir_value_len + VDOC_HEADER_LEN);
-//        }
-    //zhenyu: always do read
+//      same logic as CacheRead function. Because this is the start of reading, first key == key
+      uint64_t aio_offset = (key.b[0] & (vol->len-1) & (~ (1ull << 30)) & (~ (0xfffull))) + vol->start;
+      dir_set_offset(&dir, vol->offset_to_vol_offset(aio_offset));
+//        assert(!(vol->vol_offset(&dir) & 0xfff));
+      uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
+      dir_set_approx_size(&dir, agg_len);
+      dir_set_tag(&dir, key.slice32(2));
+      dir_set_phase(&dir, 0);
+      dir_set_head(&dir, 1);
+      dir_set_pinned(&dir, 0);
+      dir_set_token(&dir, 0);
+      dir_set_next(&dir, 0);
+      //zhenyu: always do read
       int ret  = do_read_call(&key);
       if (ret == EVENT_RETURN) {
         goto Lcallreturn;
