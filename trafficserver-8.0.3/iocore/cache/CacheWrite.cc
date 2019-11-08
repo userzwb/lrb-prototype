@@ -1823,38 +1823,41 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
       if (c->od->has_multiple_writers()) {
         goto Lmiss;
       }
-      if (c->f.update) {
-        // fail update because vector has been GC'd
-        // This situation can also arise in openWriteStartDone
-        err = ECACHE_NO_DOC;
-        goto Lfailure;
+      if (!vol->vdisk_cache) {
+      if (!dir_probe(key, c->vol, &c->dir, &c->last_collision)) {
+        if (c->f.update) {
+          // fail update because vector has been GC'd
+          // This situation can also arise in openWriteStartDone
+          err = ECACHE_NO_DOC;
+          goto Lfailure;
+        }
+        // document doesn't exist, begin write
+        // zhenyu: small doc path
+        goto Lmiss;
+      } else {
+        c->od->reading_vec = true;
+        // document exists, read vector
+        SET_CONTINUATION_HANDLER(c, &CacheVC::openWriteStartDone);
+        switch (c->do_read_call(&c->first_key)) {
+        case EVENT_DONE:
+          return ACTION_RESULT_DONE;
+        case EVENT_RETURN:
+          goto Lcallreturn;
+        default:
+          return &c->_action;
+        }
       }
-      // document doesn't exist, begin write
-      // zhenyu: small doc path
-      goto Lmiss;
-//      if (!dir_probe(key, c->vol, &c->dir, &c->last_collision)) {
-//        if (c->f.update) {
-//          // fail update because vector has been GC'd
-//          // This situation can also arise in openWriteStartDone
-//          err = ECACHE_NO_DOC;
-//          goto Lfailure;
-//        }
-//        // document doesn't exist, begin write
-//        // zhenyu: small doc path
-//        goto Lmiss;
-//      } else {
-//        c->od->reading_vec = true;
-//        // document exists, read vector
-//        SET_CONTINUATION_HANDLER(c, &CacheVC::openWriteStartDone);
-//        switch (c->do_read_call(&c->first_key)) {
-//        case EVENT_DONE:
-//          return ACTION_RESULT_DONE;
-//        case EVENT_RETURN:
-//          goto Lcallreturn;
-//        default:
-//          return &c->_action;
-//        }
-//      }
+      } else {
+          if (c->f.update) {
+              // fail update because vector has been GC'd
+              // This situation can also arise in openWriteStartDone
+              err = ECACHE_NO_DOC;
+              goto Lfailure;
+          }
+          // document doesn't exist, begin write
+          // zhenyu: small doc path
+          goto Lmiss;
+      }
     }
     // missed lock
     SET_CONTINUATION_HANDLER(c, &CacheVC::openWriteStartDone);
