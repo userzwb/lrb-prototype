@@ -161,6 +161,9 @@ elif [[ ${test_bed} = "pni" ]]; then
   ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_pni.config /opt/ts/etc/trafficserver/storage.config"
   home=/usr/people/zhenyus
 
+  echo "trimming SSD"
+  ssh "$proxy_ip_external" "/usr/sbin/blkdiscard /dev/fioa"
+
 else
    echo "wrong test_bed"
    exit 1
@@ -170,14 +173,14 @@ fi
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
 ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.ram_cache.size.*/CONFIG proxy.config.cache.ram_cache.size INT "${ram_size}"/g' /opt/ts/etc/trafficserver/records.config"
 if [[ ${alg} = "wlc" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING WLC/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING WLC/g' /opt/ts/etc/trafficserver/records.config"
 	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.memory_window.*/CONFIG proxy.config.cache.vdisk_cache.memory_window INT "${memory_window}"/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "lru" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "fifo" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "ats" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/#CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
 else
   echo "error: no algorithm found"
   exit 1
