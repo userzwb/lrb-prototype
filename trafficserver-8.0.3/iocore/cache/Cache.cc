@@ -2264,7 +2264,7 @@ CacheVC::handleReadDone(int event, Event *e)
   Doc *doc = nullptr;
   if (event == AIO_EVENT_DONE) {
     //zhenyus: git goes here
-      set_io_not_in_progress();
+    set_io_not_in_progress();
   } else if (is_io_in_progress()) {
     return EVENT_CONT;
   }
@@ -2274,15 +2274,15 @@ CacheVC::handleReadDone(int event, Event *e)
       VC_SCHED_LOCK_RETRY();
     }
     if (!cache_config_vdisk_cache_algorithm) {
-        if ((!dir_valid(vol, &dir)) || (!io.ok())) {
-            if (!io.ok()) {
-                Debug("cache_disk_error", "Read error on disk %s\n \
+    if ((!dir_valid(vol, &dir)) || (!io.ok())) {
+      if (!io.ok()) {
+        Debug("cache_disk_error", "Read error on disk %s\n \
 	    read range : [%" PRIu64 " - %" PRIu64 " bytes]  [%" PRIu64 " - %" PRIu64 " blocks] \n",
-                      vol->hash_text.get(), (uint64_t)io.aiocb.aio_offset, (uint64_t)io.aiocb.aio_offset + io.aiocb.aio_nbytes,
-                      (uint64_t)io.aiocb.aio_offset / 512, (uint64_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) / 512);
-            }
+	          vol->hash_text.get(), (uint64_t)io.aiocb.aio_offset, (uint64_t)io.aiocb.aio_offset + io.aiocb.aio_nbytes,
+	          (uint64_t)io.aiocb.aio_offset / 512, (uint64_t)(io.aiocb.aio_offset + io.aiocb.aio_nbytes) / 512);
+      }
             goto Ldone;
-        }
+    }
     }
     else if (!io.ok()) {
         printf("zhenyu: read error on disk. offset: %lx, length: %lx\n", io.aiocb.aio_offset, io.aiocb.aio_nbytes);
