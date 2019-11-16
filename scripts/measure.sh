@@ -144,7 +144,7 @@ if [[ ${test_bed} = 'gcp' ]]; then
   fi
 
   ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
-  home=/home/zhenyus
+  home=/home/zhenyus/webtracereplay
 
 elif [[ ${test_bed} = "pni" ]]; then
   proxy_ip_external=cache_proxy
@@ -159,7 +159,7 @@ elif [[ ${test_bed} = "pni" ]]; then
 
   #use single SSD
   ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_pni.config /opt/ts/etc/trafficserver/storage.config"
-  home=/usr/people/zhenyus
+  home=/usr/people/zhenyus/webtracereplay
 
   echo "trimming SSD"
   ssh "$proxy_ip_external" "/usr/sbin/blkdiscard /dev/fioa"
@@ -187,11 +187,11 @@ else
 fi
 
 echo "set client latency"
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/webtracereplay/scripts/instrument_latency.sh $proxy_ip_internal
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal
 
 
 echo "starting origin"
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal bash ${home}/webtracereplay/scripts/start_origin.sh $origin_ip_internal ${trace} ${n_origin_threads} 0 warmup ${suffix}
+ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal bash ${home}/scripts/start_origin.sh $origin_ip_internal ${trace} ${n_origin_threads} 0 warmup ${suffix}
 exit 0
 #ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
 #ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
@@ -200,7 +200,7 @@ exit 0
 
 
 echo "use remote proxy"
-ssh "$proxy_ip_external" ${home}/webtracereplay/scripts/remap_remote.sh $origin_ip_internal
+ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 
 #restart
 ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
@@ -214,7 +214,7 @@ ssh "$proxy_ip_external" 'rm -f ~/webtracereplay/log/*'
 
 echo "start measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
-ssh "$proxy_ip_external" ${home}/webtracereplay/scripts/segment_static.sh warmup_${suffix} ${test_bed} &
+ssh "$proxy_ip_external" ${home}/scripts/segment_static.sh warmup_${suffix} ${test_bed} &
 #TODO: remove this timeout later
 ssh "$proxy_ip_external" "cd ~/webtracereplay/client; ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/throughput_warmup_"${suffix}".log ../log/latency_warmup_"${suffix}".log 0 >/dev/null"
 sleep 15 # for sync
@@ -229,7 +229,7 @@ ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd ~/webtracereplay
 echo "start measuring segment stat"
 #: record segment byte miss/req
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
-ssh "$proxy_ip_external" ${home}/webtracereplay/scripts/segment_static.sh eval_${suffix} ${test_bed}&
+ssh "$proxy_ip_external" ${home}/scripts/segment_static.sh eval_${suffix} ${test_bed}&
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
