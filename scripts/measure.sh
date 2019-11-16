@@ -203,13 +203,14 @@ ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 ssh ${proxy_ip_external} "pkill -9 -f traffic_server"
 ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" &>/tmp/start_proxy.log &"
 
+echo "start measuring segment stat"
+ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
+ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" warmup &>/tmp/segment_static.log &"
+
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client
 ssh "$proxy_ip_external" 'rm -f ~/webtracereplay/log/*'
 
-echo "start measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
-ssh "$proxy_ip_external" ${home}/scripts/segment_static.sh warmup_${suffix} ${test_bed} &
 #TODO: remove this timeout later
 ssh "$proxy_ip_external" "cd ~/webtracereplay/client; ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/throughput_warmup_"${suffix}".log ../log/latency_warmup_"${suffix}".log 0 >/dev/null"
 sleep 15 # for sync
