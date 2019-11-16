@@ -11,10 +11,8 @@ else
 fi
 
 rm -f /opt/ts/var/log/trafficserver/*
-while [[ -z $(/usr/sbin/pidof traffic_server) ]]; do
-  pkill -9 -f traffic_server
-  sleep 1
-done
+pkill -9 -f traffic_server
+sleep 1
 /opt/ts/bin/traffic_server -Cclear
 curl -s -XPOST 'http://mmx.cs.princeton.edu:8086/query?db=mydb' -u admin:system --data-urlencode 'q=DROP MEASUREMENT '${suffix}
 touch /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -s -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
