@@ -122,8 +122,13 @@ int
 RamCacheLRU::get(CryptoHash *key, Ptr<IOBufferData> *ret_data, uint32_t auxkey1, uint32_t auxkey2)
 {
   //there is going to be a little more requests in this function
-//    static int counter = 0;
-//    ++counter;
+  static std::atomic<int> counter = 0;
+  if (!((counter++)%100000)){
+      std::cerr<<"RAM #obj: "<<objects<<std::endl;
+      std::cerr << "RAM cache size: " << bytes << "/" << max_bytes << " ("
+                << ((double) bytes) / max_bytes
+                << ")" << std::endl;
+  }
   if (!max_bytes) {
     return 0;
   }
