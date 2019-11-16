@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Asssume not recompile
+# Asssume traffic server is built and installed
 
 if [[ "$#" = 5 ]]; then
   trace=$1
@@ -10,8 +10,8 @@ if [[ "$#" = 5 ]]; then
 elif [[ "$#" = 0 ]]; then
   trace=wiki_1400m_4mb
 #  trace=ntg1_400m_4mb
-  alg=ats
-#  alg=fifo
+#  alg=ats
+  alg=fifo
 #  alg=wlc
   real_time=0
   test_bed=pni
@@ -173,14 +173,14 @@ fi
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
 ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.ram_cache.size.*/CONFIG proxy.config.cache.ram_cache.size INT "${ram_size}"/g' /opt/ts/etc/trafficserver/records.config"
 if [[ ${alg} = "wlc" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING WLC/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING WLC/g' /opt/ts/etc/trafficserver/records.config"
 	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.memory_window.*/CONFIG proxy.config.cache.vdisk_cache.memory_window INT "${memory_window}"/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "lru" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "fifo" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "ats" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^.CONFIG proxy.config.cache.vdisk_cache.algorithm.*/#CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/#CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
 else
   echo "error: no algorithm found"
   exit 1
@@ -189,11 +189,14 @@ fi
 echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/webtracereplay/scripts/instrument_latency.sh $proxy_ip_internal
 
+
 echo "starting origin"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd ~/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../"${trace}"_origin.tr "${n_origin_threads}" 0 > /tmp/proxy_0.log" &
+ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal bash ${home}/webtracereplay/scripts/start_origin.sh $origin_ip_internal ${trace} ${n_origin_threads} 0 warmup ${suffix}
+exit 0
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd ~/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../"${trace}"_origin.tr "${n_origin_threads}" 0 > /tmp/proxy_0.log" &
 
 
 echo "use remote proxy"
