@@ -192,18 +192,16 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/i
 
 echo "starting origin"
 #don't know why cannot redict to /dev/null
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${origin_ip_internal}" "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin.log &"
-exit 0
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -9 -f origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin.log &"
 
 
 echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 
 #restart
-ssh "$proxy_ip_external" 'rm /opt/ts/var/log/trafficserver/*'
-ssh "$proxy_ip_external" "pkill -9 -f trafficserver"
-ssh "$proxy_ip_external" "/opt/ts/bin/traffic_server -Cclear"
-ssh "$proxy_ip_external" "/opt/ts/bin/trafficserver restart"
+ssh ${proxy_ip_external} "pkill -9 -f traffic_server"
+ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" &>/tmp/start_proxy.log &"
 
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client

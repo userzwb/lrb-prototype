@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 
 
-if [[ "$#" = 7 ]]; then
-  origin_ip_internal=$1
-  trace=$2
-  n_origin_threads=$3
-  latency=$4
-  phase=$5
-  suffix=$6
-  home=$7
+if [[ "$#" = 6 ]]; then
+  trace=$1
+  n_origin_threads=$2
+  latency=$3
+  phase=$4
+  suffix=$5
+  home=$6
 elif [[ "$#" = 0 ]]; then
-  origin_ip_internal=10.1.255.250
   trace=wiki_1400m_4mb
   n_origin_threads=1024
   latency=0
@@ -22,9 +20,11 @@ else
     exit 1
 fi
 
-echo "starting origin at ${origin_ip_internal}"
+echo "starting origin..."
 sudo nginx -s stop
 sudo nginx -c ~/webtracereplay/server/nginx.conf
 pkill -9 -f origin/origin
+pkill -9 -f /tmp/influx.log
+echo ' ' > /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
 spawn-fcgi -a 127.0.0.1 -p 9000 -n ${home}/origin/origin ${home}/${trace}_origin.tr ${n_origin_threads} ${latency} 2>${home}/log/origin_"${phase}"_"${suffix}".err </dev/null | tee ${home}/log/origin_"${phase}"_"${suffix}".log | stdbuf -o0 awk '{print "'${suffix}' origin_throughput="$2",origin_n_req="$1}' &>> /tmp/influx.log
 
