@@ -11,9 +11,12 @@ else
 fi
 
 rm -f /opt/ts/var/log/trafficserver/*
-pkill -9 -f trafficserver
+while [[ -z $(/usr/sbin/pidof traffic_server) ]]; do
+  pkill -9 -f traffic_server
+  sleep 1
+done
 /opt/ts/bin/traffic_server -Cclear
-curl -XPOST 'http://mmx.cs.princeton.edu:8086/query?db=mydb' -u admin:system --data-urlencode 'q=DROP MEASUREMENT '${suffix}
-echo ' ' > /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &>/dev/null &
+curl -s -XPOST 'http://mmx.cs.princeton.edu:8086/query?db=mydb' -u admin:system --data-urlencode 'q=DROP MEASUREMENT '${suffix}
+touch /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -s -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
 env LD_PRELOAD="/usr/lib64/libtcmalloc.so.4" /opt/ts/bin/traffic_server
 
