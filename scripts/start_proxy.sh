@@ -10,7 +10,7 @@ else
     exit 1
 fi
 
-rm -rf /opt/ts/var/log/trafficserver/*
+rm -f /opt/ts/var/log/trafficserver/*
 pkill -9 -f trafficserver
 /opt/ts/bin/traffic_server -Cclear
 curl -XPOST 'http://mmx.cs.princeton.edu:8086/query?db=mydb' -u admin:system --data-urlencode 'q=DROP MEASUREMENT '${suffix}

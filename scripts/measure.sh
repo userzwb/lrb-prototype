@@ -209,40 +209,34 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" 
 
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client
-ssh "$proxy_ip_external" 'rm -f ~/webtracereplay/log/*'
-
 #TODO: remove this timeout later
-ssh "$proxy_ip_external" "cd ~/webtracereplay/client; ./client ../"${trace}"_warmup.tr "${n_warmup_client}" localhost:6000/ ../log/throughput_warmup_"${suffix}".log ../log/latency_warmup_"${suffix}".log 0 >/dev/null"
-sleep 15 # for sync
+ssh ${proxy_ip_external} "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_warmup_client}" localhost 10 &>/tmp/start_client.log"
+
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_warmup_${suffix}.log
 
 echo "switch to remote mode"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd ~/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../"${trace}"_origin.tr "${n_origin_threads}" 100 > /tmp/proxy_100.log" &
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -9 -f origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin.log &"
 
 echo "start measuring segment stat"
 #: record segment byte miss/req
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
-ssh "$proxy_ip_external" ${home}/scripts/segment_static.sh eval_${suffix} ${test_bed}&
+ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" eval &>/tmp/segment_static.log &"
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client; timeout 3600 ./client ../"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/throughput_eval_"${suffix}".log ../log/latency_eval_"${suffix}".log "${real_time}" > /dev/null"
-#ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd /home/zhenyus/webtracereplay/client; timeout 3600 ./client ../"${trace}"_eval.tr "${n_client}" "${proxy_ip_internal}":6000/ ../log/throughput_eval_"${suffix}".log ../log/latency_eval_"${suffix}".log "${real_time}
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" localhost 10 &>/tmp/start_client.log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
-scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy_0.log ~/gcp_log/origin_warmup_${suffix}.log
-scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":/tmp/proxy_100.log ~/gcp_log/origin_eval_${suffix}.log
-
+scp -3 -o ProxyJump=${proxy_ip_external} "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
-
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 rsync "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
 #TODO: multiple scp can happens at the same time
