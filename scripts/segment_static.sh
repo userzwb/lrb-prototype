@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-
+rm ~/webtracereplay/log/top_${phase}_${suffix}.log
 if [[ ${test_bed} = 'gcp' ]]; then
   #measure cpu and memory
 #  top -b -d 5 -p $(/bin/pidof traffic_server)|grep --line-buffered zhenyus 2>/dev/null | tee ~/webtracereplay/log/top_${suffix}.log &

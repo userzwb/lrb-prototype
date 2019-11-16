@@ -21,7 +21,7 @@ else
 fi
 
 
-rm -f ~/webtracereplay/log/*
+rm -f ~/webtracereplay/log/throughput_${phase}_${suffix}.log ~/webtracereplay/log/latency_${phase}_${suffix}.log
 if [[ ${phase} == "warmup" ]]; then
   timeout ${timeout} ~/webtracereplay/client/client ~/webtracereplay/${trace}_${phase}.tr ${n_client} ${host}:6000/ ~/webtracereplay/log/throughput_${phase}_${suffix}.log ~/webtracereplay/log/latency_${phase}_${suffix}.log 0 2>/dev/null | stdbuf -o0 awk '{print "'${suffix}' client_throughput="$2",latency="$3",client_n_req="$1}' >> /tmp/influx.log
 else
