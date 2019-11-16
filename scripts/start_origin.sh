@@ -23,8 +23,8 @@ else
 fi
 
 echo "starting origin at ${origin_ip_internal}"
-ssh "$origin_ip_internal" "sudo nginx -s stop"
-ssh "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
-ssh "$origin_ip_internal" pkill -f origin
-ssh "$origin_ip_internal" "nohup spawn-fcgi -a 127.0.0.1 -p 9000 -n "${home}"/origin/origin "${home}"/"${trace}"_origin.tr "${n_origin_threads}" "${latency}" 1> "${home}"/log/origin_"${phase}"_"${suffix}".log 2>/dev/null </dev/null &"
+sudo nginx -s stop
+sudo nginx -c ~/webtracereplay/server/nginx.conf
+pkill -9 -f origin/origin
+spawn-fcgi -a 127.0.0.1 -p 9000 -n ${home}/origin/origin ${home}/${trace}_origin.tr ${n_origin_threads} ${latency} 2>${home}/log/origin_"${phase}"_"${suffix}".err </dev/null | tee ${home}/log/origin_"${phase}"_"${suffix}".log | stdbuf -o0 awk '{print "'${suffix}' origin_throughput="$2",origin_n_req="$1}' &>> /tmp/influx.log
 

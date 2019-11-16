@@ -191,12 +191,9 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/i
 
 
 echo "starting origin"
-ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal bash ${home}/scripts/start_origin.sh $origin_ip_internal ${trace} ${n_origin_threads} 0 warmup ${suffix}
+#don't know why cannot redict to /dev/null
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${origin_ip_internal}" "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin.log &"
 exit 0
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -s stop"
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "sudo nginx -c ~/webtracereplay/server/nginx.conf"
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" pkill -f origin
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "cd ~/webtracereplay/origin && spawn-fcgi -a 127.0.0.1 -p 9000 -n ./origin ../"${trace}"_origin.tr "${n_origin_threads}" 0 > /tmp/proxy_0.log" &
 
 
 echo "use remote proxy"
