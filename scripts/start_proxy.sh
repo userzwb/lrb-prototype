@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 if [[ "$#" = 1 ]]; then
   suffix=$1
 elif [[ "$#" = 0 ]]; then
@@ -10,8 +9,11 @@ else
     exit 1
 fi
 
+trap '[[ -z "$(jobs -p)" ]] || kill $(jobs -p)' EXIT
+
 rm -f /opt/ts/var/log/trafficserver/*
 while [[ ! -z $(ps aux|grep traffic_server|grep -v grep) ]]; do
+  echo 'killing traffic_server'
   pkill -9 -f traffic_server
   sleep 1
 done

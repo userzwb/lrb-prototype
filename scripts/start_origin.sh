@@ -20,6 +20,8 @@ else
     exit 1
 fi
 
+trap '[[ -z "$(jobs -p)" ]] || kill $(jobs -p)' EXIT
+
 echo "starting origin..."
 sudo nginx -s stop
 sudo nginx -c ~/webtracereplay/server/nginx.conf
