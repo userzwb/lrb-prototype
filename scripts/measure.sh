@@ -187,11 +187,11 @@ else
 fi
 
 kill_background() {
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -9 -f origin"
-ssh ${proxy_ip_external} "pkill -9 -f traffic_server"
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
-ssh ${proxy_ip_external} "pkill -9 -f start_proxy"
-ssh "$proxy_ip_external" pkill -9 -f client
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
+ssh ${proxy_ip_external} "pkill -f traffic_server"
+ssh "$proxy_ip_external" 'pkill -f segment_static'
+ssh ${proxy_ip_external} "pkill -f start_proxy"
+ssh "$proxy_ip_external" pkill -f client
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 }
 
@@ -203,7 +203,7 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/i
 
 echo "starting origin"
 #don't know why cannot redict to /dev/null
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -9 -f origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 
 
@@ -211,11 +211,11 @@ echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 
 #restart
-ssh ${proxy_ip_external} "pkill -9 -f traffic_server"
+ssh ${proxy_ip_external} "pkill -f traffic_server"
 ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" &>/tmp/start_proxy.log &"
 
 echo "start measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_static'
 ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" warmup &>/tmp/segment_static.log &"
 
 echo "warmuping up"
@@ -224,16 +224,16 @@ ssh "$proxy_ip_external" pkill -f client
 ssh ${proxy_ip_external} "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_warmup_client}" localhost 10 &>/tmp/start_client_"${suffix}".log"
 
 echo "stop measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_warmup_${suffix}.log
 
 echo "switch to remote mode"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -9 -f origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 
 echo "start measuring segment stat"
 #: record segment byte miss/req
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_static'
 ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" eval &>/tmp/segment_static.log &"
 
 echo "using remote client"
@@ -242,7 +242,7 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 10 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -9 -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_static'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
