@@ -31,7 +31,7 @@ suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 if [[ ${alg} = "wlc" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
-    ram_size=28998676480
+    ram_size=28293857280
     memory_window=469762048
   else
     ram_size=31006543872
@@ -40,7 +40,7 @@ if [[ ${alg} = "wlc" ]]; then
 elif [[ ${alg} = "lru" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
-    ram_size=32177463296
+    ram_size=33253777408
   else
     ram_size=32153886720
   fi
@@ -221,7 +221,7 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" 
 echo "warmuping up"
 ssh "$proxy_ip_external" pkill -f client
 #TODO: remove this timeout later
-ssh ${proxy_ip_external} "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_warmup_client}" localhost 10 &>/tmp/start_client_"${suffix}".log"
+ssh ${proxy_ip_external} "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_warmup_client}" localhost 86400 &>/tmp/start_client_"${suffix}".log"
 
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_static'
@@ -239,7 +239,7 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 10 &>/tmp/start_client_"${suffix}".log"
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 3600 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_static'
