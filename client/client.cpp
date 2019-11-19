@@ -48,8 +48,8 @@ static size_t throw_away(void *ptr, size_t size, size_t nmemb, void *data) {
 void histogram(double val_e2e, double val_fb) {
     //input unit: log10(ns)
     histMutex.lock();
-    e2e_latency_histData[round(val_e2e * 10) / 10.0]++;
-    fb_latency_histData[round(val_fb * 10) / 10.0]++;
+    e2e_latency_histData[round(val_e2e * 100) / 100.0]++;
+    fb_latency_histData[round(val_fb * 100) / 100.0]++;
     histMutex.unlock();
 }
 
