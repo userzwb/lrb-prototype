@@ -181,6 +181,8 @@ elif [[ ${alg} = "fifo" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "ats" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/#CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
+elif [[ ${alg} = "static" ]]; then
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING Static/g' /opt/ts/etc/trafficserver/records.config"
 else
   echo "error: no algorithm found"
   exit 1
