@@ -4,7 +4,7 @@
 #traces=(wiki_1400m_4mb ntg1_400m_4mb)
 traces=(wiki_1400m_4mb)
 
-algs=(ats fifo lru wlc)
+algs=(fifo ats lru wlc)
 #algs=(fifo lru wlc ats)
 
 #request_rates=(0 1)

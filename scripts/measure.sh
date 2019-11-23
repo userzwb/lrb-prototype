@@ -252,7 +252,6 @@ scp -3 -o ProxyJump=${proxy_ip_external} "$proxy_ip_external":~/webtracereplay/l
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 rsync "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
-#TODO: multiple scp can happens at the same time
 rsync ~/gcp_log/* fat:~/webcachesim/gcp_log/
 
 echo "deleting vms"
