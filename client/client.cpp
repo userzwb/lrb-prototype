@@ -24,7 +24,7 @@ volatile bool running;
 mutex urlMutex;
 mutex histMutex;
 //key, length TODO: length calculation is broken
-queue<uint64_t> urlQueue;
+queue<pair<uint64_t, uint64_t>> urlQueue;
 char *path;
 string cacheip;
 ofstream outTp;
@@ -55,6 +55,7 @@ void histogram(double val_e2e, double val_fb) {
 
 int measureThread() {
     uint64_t currentID;
+    uint64_t current_len;
 
     CURL *curl_handle;
     /* init the curl session */
@@ -76,7 +77,8 @@ int measureThread() {
             return 0;
         urlMutex.lock();
         if (!::urlQueue.empty()) {
-            currentID = ::urlQueue.front();
+            currentID = ::urlQueue.front().first;
+            current_len = ::urlQueue.front().second;
             urlQueue.pop();
             urlMutex.unlock();
         } else {
@@ -97,17 +99,23 @@ int measureThread() {
             res = curl_easy_perform(curl_handle);
             if (res == CURLE_OK)
                 break;
+            else if (res == CURLE_COULDNT_CONNECT)
+                this_thread::sleep_for(chrono::milliseconds(1));//wait a little bit
             else
                 continue; //fail and don't try again
         }
 
-        //cannot get size information for fake header
-        double content_length = 0.0;
-        res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-                                &content_length);
 
-        if (CURLE_OK == res && content_length > 0) {
-            bytes += (long) content_length;
+        /*
+         * cannot get size information for fake header. res = CURLE_OK however size = -1 (unknown).
+         * only miss request served by origin server can get size
+         * */
+//        double content_length = 0.0;
+//        res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+//                                &content_length);
+
+        if (CURLE_OK == res && current_len > 0) {
+            bytes += (long) current_len;
             reqs++;
 
             double t_fb;
@@ -130,7 +138,7 @@ int measureThread() {
 int requestCreate() {
     unordered_map<long, long> osizes;
     uint64_t time, id;
-    uint64_t tmp_length;
+    uint64_t length;
     ifstream infile(path);
     if (!infile) {
         cerr << "Error: cannot opening file " << path << endl;
@@ -147,7 +155,7 @@ int requestCreate() {
     infile.clear();
     infile.seekg(0, ios::beg);
 
-    while (infile >> time >> id >> tmp_length) {
+    while (infile >> time >> id >> length) {
         if (is_stop)
             return 0;
         if (urlQueue.size() > 1000000) {
@@ -173,7 +181,7 @@ int requestCreate() {
             }
         }
         urlMutex.lock();
-        urlQueue.push(id);
+        urlQueue.push({id, length});
         urlMutex.unlock();
     }
 
