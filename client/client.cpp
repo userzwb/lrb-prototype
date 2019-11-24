@@ -24,7 +24,7 @@ volatile bool running;
 mutex urlMutex;
 mutex histMutex;
 //key, length TODO: length calculation is broken
-queue<pair<string, uint64_t>> urlQueue;
+queue<uint64_t> urlQueue;
 char *path;
 string cacheip;
 ofstream outTp;
@@ -54,8 +54,7 @@ void histogram(double val_e2e, double val_fb) {
 }
 
 int measureThread() {
-    string currentID;
-    uint64_t current_len;
+    uint64_t currentID;
 
     CURL *curl_handle;
     /* init the curl session */
@@ -77,9 +76,7 @@ int measureThread() {
             return 0;
         urlMutex.lock();
         if (!::urlQueue.empty()) {
-            currentID = ::urlQueue.front().first;
-            current_len = ::urlQueue.front().second;
-
+            currentID = ::urlQueue.front();
             urlQueue.pop();
             urlMutex.unlock();
         } else {
@@ -90,7 +87,7 @@ int measureThread() {
         }
         //cerr << "get " << cacheip + currentID << "\n";
         /* set URL to get */
-        curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + currentID).c_str());
+        curl_easy_setopt(curl_handle, CURLOPT_URL, (cacheip + to_string(currentID)).c_str());
         curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 10L);
         //fetch URL
         CURLcode res;
@@ -100,22 +97,17 @@ int measureThread() {
             res = curl_easy_perform(curl_handle);
             if (res == CURLE_OK)
                 break;
-            else if (res == CURLE_PARTIAL_FILE)
-                break;  //fake
-            else if (res == CURLE_COULDNT_CONNECT)
-                this_thread::sleep_for(chrono::milliseconds(1));//wait a little bit
             else
-                break; //fail and don't try again
+                continue; //fail and don't try again
         }
 
-
         //cannot get size information for fake header
-//      double content_length = 0.0;
-//      res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
-//			      &content_length);
+        double content_length = 0.0;
+        res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD,
+                                &content_length);
 
-        if ((CURLE_OK == res || CURLE_PARTIAL_FILE == res)) {
-            bytes += (long) current_len;
+        if (CURLE_OK == res && content_length > 0) {
+            bytes += (long) content_length;
             reqs++;
 
             double t_fb;
@@ -126,7 +118,6 @@ int measureThread() {
             //get elapsed time
             histogram(log10(t_e2e) + 9, log10(t_fb) + 9);
         }
-        currentID.clear();
     }
 
     /* cleanup curl stuff */
@@ -139,7 +130,7 @@ int measureThread() {
 int requestCreate() {
     unordered_map<long, long> osizes;
     uint64_t time, id;
-    uint64_t length;
+    uint64_t tmp_length;
     ifstream infile(path);
     if (!infile) {
         cerr << "Error: cannot opening file " << path << endl;
@@ -156,7 +147,7 @@ int requestCreate() {
     infile.clear();
     infile.seekg(0, ios::beg);
 
-    while (infile >> time >> id >> length) {
+    while (infile >> time >> id >> tmp_length) {
         if (is_stop)
             return 0;
         if (urlQueue.size() > 1000000) {
@@ -182,7 +173,7 @@ int requestCreate() {
             }
         }
         urlMutex.lock();
-        urlQueue.push({to_string(id), length});
+        urlQueue.push(id);
         urlMutex.unlock();
     }
 
@@ -193,11 +184,11 @@ void output() {
     int throughput_counter = 0;
     int throughput_interval = 1000;  //1000ms
     int latency_interval = 100;
-    long tmpr=0, tmpb=0;
+    long tmpr = 0, tmpb = 0;
     while (running) {
         chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
         this_thread::sleep_for(chrono::milliseconds(latency_interval));
-        if (!((throughput_counter++)%(throughput_interval/latency_interval))) {
+        if (!((throughput_counter++) % (throughput_interval / latency_interval))) {
             tmpr = reqs.load();
             tmpb = bytes.load();
             reqs.store(0);
