@@ -8,7 +8,7 @@ algs=(fifo ats lru wlc)
 #algs=(fifo lru wlc ats)
 
 #request_rates=(0 1)
-request_rates=(0)
+request_rates=(1)
 
 test_beds=(pni)
 #test_beds=(pni gcp)
