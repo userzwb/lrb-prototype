@@ -1130,6 +1130,7 @@ CacheVC::openWriteCloseDir(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED *
     }
     if (vol->vdisk_cache) {
         //TODO: parsing extra fields
+        //TODO: make sure string deallocate by itself
         auto resp = std::string(alternate.m_alt->m_response_hdr.m_http->u.resp.m_ptr_reason);
         auto i = resp.find(webcachesim::mime_field);
         int &n_extra_fields = vol->vdisk_cache->n_extra_features;

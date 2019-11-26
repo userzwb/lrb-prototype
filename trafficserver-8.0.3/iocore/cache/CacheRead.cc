@@ -136,36 +136,38 @@ Cache::open_read(Continuation *cont, const CacheKey *key, CacheHTTPHdr *request,
     if (lock.is_locked()) {
 //        dir_probe(key, vol, &result, &last_collision);
         vdir_value_len = vol->vdisk_cache->lookup(key->u64[0]);
+        if (0 == vdir_value_len) {
+            goto Lmiss;
+        }
     }
-    if (!lock.is_locked() || vdir_value_len) {
-        c = new_CacheVC(cont);
-        c->first_key = c->key = c->earliest_key = *key;
-        c->vol = vol;
-        c->vio.op = VIO::READ;
-        c->base_stat = cache_read_active_stat;
-        CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
-        c->request.copy_shallow(request);
-        c->frag_type = CACHE_FRAG_TYPE_HTTP;
-        c->params = params;
-        c->od = nullptr;
-        if (lock.is_locked()) {
-            c->first_key_value_len = vdir_value_len;
+    c = new_CacheVC(cont);
+    c->first_key = c->key = c->earliest_key = *key;
+    c->vol = vol;
+    c->vio.op = VIO::READ;
+    c->base_stat = cache_read_active_stat;
+    CACHE_INCREMENT_DYN_STAT(c->base_stat + CACHE_STAT_ACTIVE);
+    c->request.copy_shallow(request);
+    c->frag_type = CACHE_FRAG_TYPE_HTTP;
+    c->params = params;
+    c->od = nullptr;
+    if ( 0 != vdir_value_len) {
+        assert(lock.is_locked());
+        c->first_key_value_len = vdir_value_len;
 //            random value based on key; not reading the tail 1GB to prevent looping read;
 //            4K aligned; relative to start positive
-            uint64_t aio_offset = (key->b[0] & (vol->len-1) & (~ (1ull << 30)) & (~ (0xfffull))) + vol->start;
-            dir_set_offset(&result, vol->offset_to_vol_offset(aio_offset));
-            uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
+        uint64_t aio_offset = (key->b[0] & (vol->len-1) & (~ (1ull << 30)) & (~ (0xfffull))) + vol->start;
+        dir_set_offset(&result, vol->offset_to_vol_offset(aio_offset));
+        uint64_t agg_len = vol->round_to_approx_size(vdir_value_len + VDOC_HEADER_LEN + sizeof(Doc));
 //            assert(!(vol->vol_offset(&result) & 0xfff));
-            dir_set_approx_size(&result, agg_len);
-            //these I just leave unchanged as the first req of wiki
-            dir_set_tag(&result, key->slice32(2));
-            //zhenyu: phase is not important as we comment phase checking and do random read
-            dir_set_phase(&result, 0);
-            dir_set_head(&result, 1);
-            dir_set_pinned(&result, 0);
-            dir_set_token(&result, 0);
-            dir_set_next(&result, 0);
-        }
+        dir_set_approx_size(&result, agg_len);
+        //these I just leave unchanged as the first req of wiki
+        dir_set_tag(&result, key->slice32(2));
+        //zhenyu: phase is not important as we comment phase checking and do random read
+        dir_set_phase(&result, 0);
+        dir_set_head(&result, 1);
+        dir_set_pinned(&result, 0);
+        dir_set_token(&result, 0);
+        dir_set_next(&result, 0);
     }
     }
 
@@ -1093,13 +1095,14 @@ CacheVC::openReadStartHead(int event, Event *e)
     // be evacuated as it is read
 //        //TODO: zhenyu: how to handle this for fake obj?
 //because dir is determinstically faked, this can cause overflow
-    if (!vol->vdisk_cache)
+    if (!vol->vdisk_cache) {
     if (!dir_agg_valid(vol, &dir)) {
       // a directory entry which is nolonger valid may have been overwritten
       if (!dir_valid(vol, &dir)) {
         last_collision = nullptr;
       }
       goto Lread;
+    }
     }
     doc = (Doc *)buf->data();
     if (doc->magic != DOC_MAGIC) {
@@ -1276,6 +1279,8 @@ CacheVC::openReadStartHead(int event, Event *e)
         goto Lcallreturn;
       }
       return ret;
+    } else {
+        goto Ldone;
     }}
   }
 #pragma clang diagnostic pop

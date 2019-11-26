@@ -2487,7 +2487,7 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
    */
   // see if its in the aggregation buffer
   //zhenyu: never in aggregation buffer
-  if (!vol->vdisk_cache)
+  if (!vol->vdisk_cache) {
   if (dir_agg_buf_valid(vol, &dir)) {
     int agg_offset = vol->vol_offset(&dir) - vol->header->write_pos;
     buf            = new_IOBufferData(iobuffer_size_to_index(io.aiocb.aio_nbytes, MAX_BUFFER_SIZE_INDEX), MEMALIGNED);
@@ -2498,6 +2498,7 @@ CacheVC::handleRead(int /* event ATS_UNUSED */, Event * /* e ATS_UNUSED */)
     io.aio_result = io.aiocb.aio_nbytes;
     SET_HANDLER(&CacheVC::handleReadDone);
     return EVENT_RETURN;
+  }
   }
 
   io.aiocb.aio_fildes = vol->fd;
