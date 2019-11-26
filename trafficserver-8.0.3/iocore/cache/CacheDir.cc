@@ -329,6 +329,7 @@ dir_delete_entry(Dir *e, Dir *p, int s, Vol *d)
     if (fo) {
       dir_set_prev(dir_from_offset(fo, seg), eo);
     }
+    //TODO: look at this
     d->header->freelist[s] = eo;
   } else {
     Dir *n = next_dir(e, seg);

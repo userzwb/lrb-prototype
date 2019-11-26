@@ -1825,6 +1825,7 @@ Cache::open_write(Continuation *cont, const CacheKey *key, CacheHTTPInfo *info, 
         goto Lmiss;
       }
       if (!vol->vdisk_cache) {
+          //TODO
       if (!dir_probe(key, c->vol, &c->dir, &c->last_collision)) {
         if (c->f.update) {
           // fail update because vector has been GC'd

@@ -1246,6 +1246,7 @@ CacheVC::openReadStartHead(int event, Event *e)
       return handleEvent(EVENT_IMMEDIATE, nullptr);
     }
     if (!vol->vdisk_cache) {
+        //TODO: there is a delete entry
     if (dir_probe(&key, vol, &dir, &last_collision)) {
       first_dir = dir;
       int ret   = do_read_call(&key);
