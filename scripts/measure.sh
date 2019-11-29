@@ -21,7 +21,7 @@ else
     exit 1
 fi
 
-n_origin_threads=1024
+n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v2"
 zhenyu_ats_snapshot="zhenyus-v5"
