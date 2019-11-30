@@ -53,7 +53,7 @@ if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
   ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
   cache_size=549755813888
   n_warmup_client=180
-  n_client=1024
+  n_client=512
 else
   ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
   cache_size=1099511627776
