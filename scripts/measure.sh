@@ -223,7 +223,7 @@ ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 
 #restart
 ssh ${proxy_ip_external} "pkill -f traffic_server"
-ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" &>/tmp/start_proxy.log &"
+ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" "${test_bed}" &>/tmp/start_proxy.log &"
 
 echo "start measuring segment statistics"
 ssh "$proxy_ip_external" 'pkill -f segment_ps'
