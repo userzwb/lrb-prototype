@@ -15,10 +15,10 @@ fi
 rm ~/webtracereplay/log/ps_${suffix}.log
 if [[ ${test_bed} = 'gcp' ]]; then
   #measure cpu and memory
-  while true; do ps -o pcpu,rss,vsz $(/bin/pidof traffic_server) | tail -n1 | tee -a ~/webtracereplay/log/ps_${phase}_${suffix}.log | stdbuf -o0 awk '{print "'${suffix}' pcpu="$1",rss="$2",vsz="$3}' >> /tmp/influx.log; sleep 1;done
+  while true; do ps -o pcpu,rss,vsz $(/bin/pidof traffic_server) | tail -n1 | tee -a ~/webtracereplay/log/ps_${suffix}.log | stdbuf -o0 awk '{print "'${suffix}' pcpu="$1",rss="$2",vsz="$3}' >> /tmp/influx.log; sleep 1;done
 elif [[ ${test_bed} = "pni" ]]; then
   #measure cpu and memory
-  while true; do ps -o pcpu,rss,vsz $(/usr/sbin/pidof traffic_server) | tail -n1 | tee -a ~/webtracereplay/log/ps_${phase}_${suffix}.log | stdbuf -o0 awk '{print "'${suffix}' pcpu="$1",rss="$2",vsz="$3}' >> /tmp/influx.log; sleep 1;done
+  while true; do ps -o pcpu,rss,vsz $(/usr/sbin/pidof traffic_server) | tail -n1 | tee -a ~/webtracereplay/log/ps_${suffix}.log | stdbuf -o0 awk '{print "'${suffix}' pcpu="$1",rss="$2",vsz="$3}' >> /tmp/influx.log; sleep 1;done
 else
    echo "wrong test_bed"
    exit 1
