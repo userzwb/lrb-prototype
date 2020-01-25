@@ -23,13 +23,13 @@ fi
 trap '[[ -z "$(jobs -p)" ]] || kill $(jobs -p)' EXIT
 
 echo "starting origin..."
-if [[ ${phase} == "warmup" ]]; then
-  sudo nginx -s stop
-  sudo nginx -c ~/webtracereplay/server/nginx.conf
-  pkill -f /tmp/influx.log
-  rm -f /tmp/influx.log
-  touch /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -s -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
-fi
+#if [[ ${phase} == "warmup" ]]; then
+sudo nginx -s stop
+sudo nginx -c ~/webtracereplay/server/nginx.conf
+pkill -f /tmp/influx.log
+rm -f /tmp/influx.log
+touch /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -s -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
+#fi
 
 pkill -f origin/origin
 rm -f ${home}/log/origin_"${phase}"_"${suffix}".err ${home}/log/origin_"${phase}"_"${suffix}".log

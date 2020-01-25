@@ -8,13 +8,13 @@ if [[ "$#" = 5 ]]; then
   test_bed=$4
   trail=$5
 elif [[ "$#" = 0 ]]; then
-  trace=wiki_1400m_4mb
+  trace=wiki2018_4mb
 #  trace=ntg1_400m_4mb
 #  alg=ats
-  alg=fifo
-#  alg=wlc
+#  alg=fifo
+  alg=wlc
   real_time=0
-  test_bed=pni
+  test_bed=gcp
   trail=0
 else
     echo "Illegal number of parameters"
@@ -24,23 +24,25 @@ fi
 n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v2"
-zhenyu_ats_snapshot="zhenyus-v5"
+zhenyu_ats_snapshot="zhenyus-v7"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
 if [[ ${alg} = "wlc" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
-  if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
-    ram_size=28293857280
-    memory_window=469762048
+  if [[ ${trace} = 'wiki2018_4mb' ]]; then
+    ram_size=27282460672
+#TODO: remember to change this back from 64GB to 1TB
+#    memory_window=671088640
+    memory_window=58720256
   else
     ram_size=31006543872
     memory_window=100663296
   fi
 elif [[ ${alg} = "lru" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
-  if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
-    ram_size=33253777408
+  if [[ ${trace} = 'wiki2018_4mb' ]]; then
+    ram_size=33044983808
   else
     ram_size=32153886720
   fi
@@ -49,9 +51,11 @@ else
   ram_size=34359738368
 fi
 
-if [[ ${trace} = 'wiki_1400m_4mb' ]]; then
-  ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
-  cache_size=549755813888
+if [[ ${trace} = 'wiki2018_4mb' ]]; then
+  ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
+#TODO: remember to change this back from 64GB to 1TB
+#  cache_size=1099511627776
+  cache_size=68719476736
   n_warmup_client=180
   n_client=1024
 else
@@ -125,19 +129,19 @@ if [[ ${test_bed} = 'gcp' ]]; then
 
   #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
   #use single SSD
-  if [[ ${trace} = "wiki_1400m_4mb" ]]; then
-    ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_4.config ~/webtracereplay/tsconfig_gcp/storage.config"
-  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
-    ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_8.config ~/webtracereplay/tsconfig_gcp/storage.config"
-  else
-    echo "error: no trace found"
-    exit 1
-  fi
+#  if [[ ${trace} = "wiki2018_4mb" ]]; then
+#    ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_4.config ~/webtracereplay/tsconfig_gcp/storage.config"
+#  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
+  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage.config ~/webtracereplay/tsconfig_gcp/storage.config"
+#  else
+#    echo "error: no trace found"
+#    exit 1
+#  fi
 
   echo "set proxy SSD permission"
   ssh "$proxy_ip_external" 'sudo apt-get update && sudo apt-get install mdadm --no-install-recommends'
 
-  if [[ ${trace} = "wiki_1400m_4mb" ]]; then
+  if [[ ${trace} = "wiki2018_4mb" ]]; then
     ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=4 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4'
   elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
     ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=8 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4 /dev/nvme0n5 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8'
@@ -191,7 +195,8 @@ fi
 kill_background() {
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh ${proxy_ip_external} "pkill -f traffic_server"
-ssh "$proxy_ip_external" 'pkill -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_ps'
+ssh "$proxy_ip_external" 'pkill -f segment_top'
 ssh ${proxy_ip_external} "pkill -f start_proxy"
 ssh "$proxy_ip_external" pkill -f client
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
@@ -203,11 +208,14 @@ echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal
 
 
-echo "starting origin"
+#echo "starting origin"
 #don't know why cannot redict to /dev/null
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
+#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 
+echo "starting origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
+ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 
 echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
@@ -216,35 +224,26 @@ ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 ssh ${proxy_ip_external} "pkill -f traffic_server"
 ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" &>/tmp/start_proxy.log &"
 
-echo "start measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -f segment_static'
-ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" warmup &>/tmp/segment_static.log &"
+echo "start measuring segment statistics"
+ssh "$proxy_ip_external" 'pkill -f segment_ps'
+ssh "$proxy_ip_external" 'pkill -f segment_top'
+ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_ps.sh "${suffix}" "${test_bed}" &>/tmp/segment_ps.log &"
+ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${test_bed}" &>/tmp/segment_top.log &"
 
 echo "warmuping up"
-ssh "$proxy_ip_external" pkill -f client
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: remove this timeout later
-ssh ${proxy_ip_external} "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_warmup_client}" localhost 86400 0 &>/tmp/start_client_"${suffix}".log"
-
-echo "stop measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -f segment_static'
-ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_warmup_${suffix}.log
-
-echo "switch to remote mode"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
-ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
-
-echo "start measuring segment stat"
-#: record segment byte miss/req
-ssh "$proxy_ip_external" 'pkill -f segment_static'
-ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_static.sh "${suffix}" "${test_bed}" eval &>/tmp/segment_static.log &"
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 3600 0 &>/tmp/start_client_"${suffix}".log"
+sleep 15 # for sync
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 3600 1 &>/tmp/start_client_"${suffix}".log"
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 3600 "${real_time}" &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
-ssh "$proxy_ip_external" 'pkill -f segment_static'
+ssh "$proxy_ip_external" 'pkill -f segment_ps'
+ssh "$proxy_ip_external" 'pkill -f segment_top'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
@@ -257,10 +256,11 @@ rsync ~/gcp_log/* fat:~/webcachesim/gcp_log/
 echo "deleting vms"
 
 if [[ ${test_bed} = 'gcp' ]]; then
+  echo ${suffix} finish
   #TODO: enable deleting
-  gcloud compute instances delete --quiet $origin_name
-  gcloud compute instances delete --quiet $client_name
-  gcloud compute instances delete --quiet $proxy_name
+#  gcloud compute instances delete --quiet $origin_name
+#  gcloud compute instances delete --quiet $client_name
+#  gcloud compute instances delete --quiet $proxy_name
 elif [[ ${test_bed} = "pni" ]]; then
   echo ${suffix} finish
 else
