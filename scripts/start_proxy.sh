@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ "$#" = 1 ]]; then
+if [[ "$#" = 2 ]]; then
   suffix=$1
   test_bed=$2
 elif [[ "$#" = 0 ]]; then
