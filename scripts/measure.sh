@@ -248,10 +248,10 @@ ssh "$proxy_ip_external" 'pkill -f segment_top'
 ssh "$proxy_ip_external" 'tail -n 10000 /opt/ts/var/log/trafficserver/small.log' > /home/zhenyus/gcp_log/small_eval_${suffix}.log
 
 echo "downloading..."
-scp -3 -o ProxyJump=${proxy_ip_external} "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
+scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":~/webtracereplay/log/* ~/gcp_log/
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
-scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 rsync "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
+scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
 rsync ~/gcp_log/* fat:~/webcachesim/gcp_log/
 
 echo "deleting vms"
