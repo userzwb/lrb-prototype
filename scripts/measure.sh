@@ -142,11 +142,11 @@ if [[ ${test_bed} = 'gcp' ]]; then
   echo "set proxy SSD permission"
   ssh "$proxy_ip_external" 'sudo apt-get update && sudo apt-get install mdadm --no-install-recommends'
 
-  if [[ ${trace} = "wiki2018_4mb" ]]; then
-    ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=4 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4'
-  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
-    ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=8 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4 /dev/nvme0n5 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8'
-  fi
+#  if [[ ${trace} = "wiki2018_4mb" ]]; then
+#    ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=4 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4'
+#  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
+  ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=8 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4 /dev/nvme0n5 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8'
+#  fi
 
   ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
   home=/home/zhenyus/webtracereplay
