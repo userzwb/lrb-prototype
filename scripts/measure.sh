@@ -24,7 +24,7 @@ fi
 n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v2"
-zhenyu_ats_snapshot="zhenyus-v7"
+zhenyu_ats_snapshot="zhenyus-v8"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
@@ -126,6 +126,7 @@ if [[ ${test_bed} = 'gcp' ]]; then
   ssh "$proxy_ip_external" "cd ~/webtracereplay/origin && git pull && make"
   ssh "$proxy_ip_external" "cd ~/webtracereplay/client && git pull && make"
   ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
+  ssh -o ProxyJump=${proxy_ip_external} $origin_ip_internal "cd ~/webtracereplay/origin && git pull && make"
 
   #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
   #use single SSD
@@ -205,7 +206,7 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 trap 'kill_background' EXIT
 
 echo "set client latency"
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal ${test_bed}
 
 
 #echo "starting origin"
@@ -233,13 +234,13 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${
 echo "warmuping up"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: remove this timeout later
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 3600 0 &>/tmp/start_client_"${suffix}".log"
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 60 0 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 3600 "${real_time}" &>/tmp/start_client_"${suffix}".log"
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 60 "${real_time}" &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_ps'
