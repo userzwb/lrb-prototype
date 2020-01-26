@@ -19,6 +19,7 @@ while [[ ! -z $(ps aux|grep traffic_server|grep -v grep) ]]; do
   pkill -f traffic_server
   sleep 1
 done
+sudo blkdiscard /dev/md0
 /opt/ts/bin/traffic_server -Cclear
 curl -s -XPOST 'http://mmx.cs.princeton.edu:8086/query?db=mydb' -u admin:system --data-urlencode 'q=DROP MEASUREMENT '${suffix}
 touch /tmp/influx.log ; tail -f /tmp/influx.log | while read v; do curl -s -m 1 -XPOST 'http://mmx.cs.princeton.edu:8086/write?db=mydb' -u admin:system --data-binary "$v";done &
