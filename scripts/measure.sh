@@ -24,7 +24,7 @@ fi
 n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
 native_ats_snapshot="native-v2"
-zhenyu_ats_snapshot="zhenyus-v8"
+zhenyu_ats_snapshot="zhenyus-v11"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
