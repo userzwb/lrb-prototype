@@ -214,7 +214,7 @@ echo "starting origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 # wait enought time for origin to init
-sleep 100
+sleep 300
 
 echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
@@ -223,7 +223,7 @@ ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 ssh ${proxy_ip_external} "pkill -f traffic_server"
 ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" "${test_bed}" &>/tmp/start_proxy.log &"
 # wait enought time for traffic_server to init
-sleep 100
+sleep 300
 
 echo "start measuring segment statistics"
 ssh "$proxy_ip_external" 'pkill -f segment_ps'
