@@ -32,9 +32,8 @@ if [[ ${alg} = "wlc" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=27282460672
-#TODO: remember to change this back from 64GB to 1TB
-#    memory_window=671088640
-    memory_window=58720256
+    memory_window=671088640
+#    memory_window=58720256
   else
     ram_size=31006543872
     memory_window=100663296
@@ -53,9 +52,7 @@ fi
 
 if [[ ${trace} = 'wiki2018_4mb' ]]; then
   ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
-#TODO: remember to change this back from 64GB to 1TB
-#  cache_size=1099511627776
-  cache_size=68719476736
+  cache_size=1099511627776
   n_warmup_client=180
   n_client=1024
 else
@@ -234,13 +231,15 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${
 echo "warmuping up"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: remove this timeout later
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 60 0 &>/tmp/start_client_"${suffix}".log"
+#estimate finish = 90*1024/1.2/3600 = 21.333333333333332
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 129600 0 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 #TODO: make time out to be max 1 hour
-ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 60 "${real_time}" &>/tmp/start_client_"${suffix}".log"
+#estimate finish = 90/2800*400*1024/1.2/3600 = 3.0476190476190474
+ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 16200 "${real_time}" &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_external" 'pkill -f segment_ps'
