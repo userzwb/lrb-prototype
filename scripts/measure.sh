@@ -23,7 +23,6 @@ fi
 
 n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
-native_ats_snapshot="native-v2"
 zhenyu_ats_snapshot="zhenyus-v11"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
@@ -46,7 +45,7 @@ elif [[ ${alg} = "lru" ]]; then
     ram_size=32153886720
   fi
 else
-  snapshot_id=$native_ats_snapshot
+  snapshot_id=$zhenyu_ats_snapshot
   ram_size=34359738368
 fi
 
@@ -214,6 +213,8 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/i
 echo "starting origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
+# wait enought time for origin to init
+sleep 100
 
 echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
@@ -221,6 +222,8 @@ ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 #restart
 ssh ${proxy_ip_external} "pkill -f traffic_server"
 ssh ${proxy_ip_external} "nohup ~/webtracereplay/scripts/start_proxy.sh "${suffix}" "${test_bed}" &>/tmp/start_proxy.log &"
+# wait enought time for traffic_server to init
+sleep 100
 
 echo "start measuring segment statistics"
 ssh "$proxy_ip_external" 'pkill -f segment_ps'
