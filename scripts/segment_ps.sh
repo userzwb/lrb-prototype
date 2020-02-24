@@ -24,10 +24,3 @@ else
    exit 1
 fi
 
-#
-#rm log/ats_${suffix}.log
-#while [[ 1 ]]
-#do
-#  /opt/ts/bin/traffic_ctl metric get proxy.process.cache_total_misses_bytes proxy.process.cache_total_bytes >> log/ats_${suffix}.log
-#  sleep 5
-#done

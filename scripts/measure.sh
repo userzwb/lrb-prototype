@@ -9,10 +9,7 @@ if [[ "$#" = 5 ]]; then
   trail=$5
 elif [[ "$#" = 0 ]]; then
   trace=wiki2018_4mb
-#  trace=ntg1_400m_4mb
-#  alg=ats
-#  alg=fifo
-  alg=wlc
+  alg=LRB
   real_time=0
   test_bed=gcp
   trail=0
@@ -27,7 +24,7 @@ zhenyu_ats_snapshot="zhenyus-v16"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
-if [[ ${alg} = "wlc" ]]; then
+if [[ ${alg} = "LRB" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=29429944320
@@ -37,7 +34,7 @@ if [[ ${alg} = "wlc" ]]; then
     ram_size=31006543872
     memory_window=100663296
   fi
-elif [[ ${alg} = "lru" ]]; then
+elif [[ ${alg} = "LRU" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=33044983808
@@ -131,11 +128,7 @@ if [[ ${test_bed} = 'gcp' ]]; then
   echo "set proxy SSD permission"
   ssh "$proxy_ip_external" 'sudo apt-get update && sudo apt-get install mdadm --no-install-recommends'
 
-#  if [[ ${trace} = "wiki2018_4mb" ]]; then
-#    ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=4 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4'
-#  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
   ssh "$proxy_ip_external" 'sudo mdadm --create /dev/md0 --level=0 --raid-devices=8 /dev/nvme0n1 /dev/nvme0n2 /dev/nvme0n3 /dev/nvme0n4 /dev/nvme0n5 /dev/nvme0n6 /dev/nvme0n7 /dev/nvme0n8'
-#  fi
 
   ssh "$proxy_ip_external" 'sudo chmod 777 /dev/md0'
   home=/home/zhenyus/webtracereplay
@@ -166,10 +159,10 @@ fi
 
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
 ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.ram_cache.size.*/CONFIG proxy.config.cache.ram_cache.size INT "${ram_size}"/g' /opt/ts/etc/trafficserver/records.config"
-if [[ ${alg} = "wlc" ]]; then
-	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING WLC/g' /opt/ts/etc/trafficserver/records.config"
+if [[ ${alg} = "LRB" ]]; then
+	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRB/g' /opt/ts/etc/trafficserver/records.config"
 	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.memory_window.*/CONFIG proxy.config.cache.vdisk_cache.memory_window INT "${memory_window}"/g' /opt/ts/etc/trafficserver/records.config"
-elif [[ ${alg} = "lru" ]]; then
+elif [[ ${alg} = "LRU" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "fifo" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
@@ -197,11 +190,6 @@ trap 'kill_background' EXIT
 echo "set client latency"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal ${test_bed}
 
-
-#echo "starting origin"
-#don't know why cannot redict to /dev/null
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
-#ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 0 warmup "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 
 echo "starting origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
@@ -253,10 +241,10 @@ echo "deleting vms"
 
 if [[ ${test_bed} = 'gcp' ]]; then
   echo ${suffix} finish
-  #TODO: enable deleting
-#  gcloud compute instances delete --quiet $origin_name
-#  gcloud compute instances delete --quiet $client_name
-#  gcloud compute instances delete --quiet $proxy_name
+  # enable deleting
+  gcloud compute instances delete --quiet $origin_name
+  gcloud compute instances delete --quiet $client_name
+  gcloud compute instances delete --quiet $proxy_name
 elif [[ ${test_bed} = "pni" ]]; then
   echo ${suffix} finish
 else

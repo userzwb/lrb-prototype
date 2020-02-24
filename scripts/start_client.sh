@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 if [[ "$#" = 7 ]]; then
   suffix=$1
   trace=$2
