@@ -2,7 +2,7 @@
 
 traces=(wiki2018_4mb)
 
-algs=(fifo ats LRU LRB)
+algs=(FIFO Unmodified LRU LRB)
 
 request_rates=(0 1)
 

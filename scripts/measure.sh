@@ -164,11 +164,11 @@ if [[ ${alg} = "LRB" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.vdisk_cache.memory_window.*/CONFIG proxy.config.cache.vdisk_cache.memory_window INT "${memory_window}"/g' /opt/ts/etc/trafficserver/records.config"
 elif [[ ${alg} = "LRU" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRU/g' /opt/ts/etc/trafficserver/records.config"
-elif [[ ${alg} = "fifo" ]]; then
+elif [[ ${alg} = "FIFO" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING FIFO/g' /opt/ts/etc/trafficserver/records.config"
-elif [[ ${alg} = "ats" ]]; then
+elif [[ ${alg} = "Unmodified" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/#CONFIG proxy.config.cache.vdisk_cache.algorithm STRING/g' /opt/ts/etc/trafficserver/records.config"
-elif [[ ${alg} = "static" ]]; then
+elif [[ ${alg} = "Static" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING Static/g' /opt/ts/etc/trafficserver/records.config"
 else
   echo "error: no algorithm found"
