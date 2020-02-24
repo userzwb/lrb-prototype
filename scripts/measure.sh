@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Asssume traffic server is built and installed
 
+#TODO: Fill in your Google Cloud detail
+google-cloud-project=
+google-cloud-zone=
+google-cloud-snapshot-id=
+google-cloud-service-account=
+
 if [[ "$#" = 5 ]]; then
   trace=$1
   alg=$2
@@ -18,11 +24,6 @@ else
     exit 1
 fi
 
-#TODO: Fill in your Google Cloud detail
-google-cloud-project=
-google-cloud-zone=
-google-cloud-snapshot-id=
-google-cloud-service-account=
 
 
 n_origin_threads=2048
