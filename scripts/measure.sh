@@ -18,14 +18,18 @@ else
     exit 1
 fi
 
+#TODO: Fill in your Google Cloud detail
+google-cloud-project=
+google-cloud-zone=
+google-cloud-snapshot-id=
+google-cloud-service-account=
+
+
 n_origin_threads=2048
-#TODO: make sure snapshot id is more recent
-zhenyu_ats_snapshot="zhenyus-v16"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
 if [[ ${alg} = "LRB" ]]; then
-  snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=29429944320
     memory_window=748938014
@@ -35,14 +39,12 @@ if [[ ${alg} = "LRB" ]]; then
     memory_window=100663296
   fi
 elif [[ ${alg} = "LRU" ]]; then
-  snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=33044983808
   else
     ram_size=32153886720
   fi
 else
-  snapshot_id=$zhenyu_ats_snapshot
   ram_size=34359738368
 fi
 
@@ -64,9 +66,9 @@ if [[ ${test_bed} = 'gcp' ]]; then
   client_name=client-${trace:0:1}-${alg}-${real_time}-${trail}
 
   echo $client_name
-  gcloud compute --project "analog-delight-252816" disks create $client_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
+  gcloud compute --project "${google-cloud-project}" disks create $client_name --size "128" --zone "${google-cloud-zone}" --source-snapshot ${google-cloud-snapshot-id} --type "pd-standard"
 
-  gcloud beta compute --project=analog-delight-252816 instances create $client_name --zone=us-east4-c --machine-type=n1-standard-16 --subnet=default --no-address --network-tier=PREMIUM --metadata=ssh-keys=zhenyus:ssh-rsa\ AAAAB3NzaC1yc2EAAAADAQABAAABAQCn207dzUfLZHccGWnk4gl\+76QU2D05ausXsqBNTMp9BvJeXEvbcSkauSsA1ih73nt2yI4yOs94SfwmXBa7ZNAp4nEy2mLDywLFjN/qhmWd4z1ucqw4mD5mJCHOFBWPimlWZmTpTkmauNFnfbGdmP2CspR2JJaNUORX/TPo0Xvj1aNLwfJn76voXDrPDaX5QqiOlhVRZJNJvWX/ybDLyllsh0eNAkVfTqNzyvKK/Ms7M3yKcicYccJBwY35rS0rxvpw9i9v5pvi\+81taXA5HX9KkjtA/keGcfhN95VO2vpVXmSWmYnsO5zv42xKzfC0USICV3fssdXj/H2bvvWrOKDD\ zhenyus --maintenance-policy=MIGRATE --service-account=78652309126-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${client_name},device-name=${client_name},mode=rw,boot=yes,auto-delete=yes --reservation-affinity=any
+  gcloud beta compute --project=${google-cloud-project} instances create $client_name --zone=${google-cloud-zone} --machine-type=n1-standard-16 --subnet=default --no-address --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=${google-cloud-service-account} --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${client_name},device-name=${client_name},mode=rw,boot=yes,auto-delete=yes --reservation-affinity=any
 
   client_ip_internal=$( gcloud compute instances describe $client_name --format='get(networkInterfaces[0].networkIP)' )
 
@@ -75,9 +77,9 @@ if [[ ${test_bed} = 'gcp' ]]; then
   #create origin
   origin_name=origin-${trace:0:1}-${alg}-${real_time}-${trail}
   echo $origin_name
-  gcloud compute --project "analog-delight-252816" disks create $origin_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
+  gcloud compute --project "${google-cloud-project}" disks create $origin_name --size "128" --zone "${google-cloud-zone}" --source-snapshot ${google-cloud-snapshot-id} --type "pd-standard"
 
-  gcloud beta compute --project=analog-delight-252816 instances create $origin_name --zone=us-east4-c --machine-type=n1-standard-16 --subnet=default --no-address --network-tier=PREMIUM --metadata=ssh-keys=zhenyus:ssh-rsa\ AAAAB3NzaC1yc2EAAAADAQABAAABAQCn207dzUfLZHccGWnk4gl\+76QU2D05ausXsqBNTMp9BvJeXEvbcSkauSsA1ih73nt2yI4yOs94SfwmXBa7ZNAp4nEy2mLDywLFjN/qhmWd4z1ucqw4mD5mJCHOFBWPimlWZmTpTkmauNFnfbGdmP2CspR2JJaNUORX/TPo0Xvj1aNLwfJn76voXDrPDaX5QqiOlhVRZJNJvWX/ybDLyllsh0eNAkVfTqNzyvKK/Ms7M3yKcicYccJBwY35rS0rxvpw9i9v5pvi\+81taXA5HX9KkjtA/keGcfhN95VO2vpVXmSWmYnsO5zv42xKzfC0USICV3fssdXj/H2bvvWrOKDD\ zhenyus --maintenance-policy=MIGRATE --service-account=78652309126-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${origin_name},device-name=${origin_name},mode=rw,boot=yes,auto-delete=yes --reservation-affinity=any
+  gcloud beta compute --project=${google-cloud-project} instances create $origin_name --zone=${google-cloud-zone} --machine-type=n1-standard-16 --subnet=default --no-address --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=${google-cloud-service-account} --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${origin_name},device-name=${origin_name},mode=rw,boot=yes,auto-delete=yes --reservation-affinity=any
 
   origin_ip_internal=$( gcloud compute instances describe $origin_name --format='get(networkInterfaces[0].networkIP)' )
 
@@ -86,9 +88,9 @@ if [[ ${test_bed} = 'gcp' ]]; then
   #create proxy
   proxy_name=proxy-${trace:0:1}-${alg}-${real_time}-${trail}
   echo $proxy_name
-  gcloud compute --project "analog-delight-252816" disks create $proxy_name --size "128" --zone "us-east4-c" --source-snapshot $snapshot_id --type "pd-standard"
+  gcloud compute --project "${google-cloud-project}" disks create $proxy_name --size "128" --zone "${google-cloud-zone}" --source-snapshot ${google-cloud-snapshot-id} --type "pd-standard"
 
-  gcloud beta compute --project=analog-delight-252816 instances create $proxy_name --zone=us-east4-c --machine-type=n1-standard-64 --subnet=default --network-tier=PREMIUM --metadata=ssh-keys=zhenyus:ssh-rsa\ AAAAB3NzaC1yc2EAAAADAQABAAABAQCn207dzUfLZHccGWnk4gl\+76QU2D05ausXsqBNTMp9BvJeXEvbcSkauSsA1ih73nt2yI4yOs94SfwmXBa7ZNAp4nEy2mLDywLFjN/qhmWd4z1ucqw4mD5mJCHOFBWPimlWZmTpTkmauNFnfbGdmP2CspR2JJaNUORX/TPo0Xvj1aNLwfJn76voXDrPDaX5QqiOlhVRZJNJvWX/ybDLyllsh0eNAkVfTqNzyvKK/Ms7M3yKcicYccJBwY35rS0rxvpw9i9v5pvi\+81taXA5HX9KkjtA/keGcfhN95VO2vpVXmSWmYnsO5zv42xKzfC0USICV3fssdXj/H2bvvWrOKDD\ zhenyus --maintenance-policy=MIGRATE --service-account=78652309126-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${proxy_name},device-name=${proxy_name},mode=rw,boot=yes,auto-delete=yes ${ssd_config} --reservation-affinity=any
+  gcloud beta compute --project=${google-cloud-project} instances create $proxy_name --zone=${google-cloud-zone} --machine-type=n1-standard-64 --subnet=default --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=${google-cloud-service-account} --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --disk=name=${proxy_name},device-name=${proxy_name},mode=rw,boot=yes,auto-delete=yes ${ssd_config} --reservation-affinity=any
 
   proxy_ip_internal=$( gcloud compute instances describe $proxy_name --format='get(networkInterfaces[0].networkIP)' )
   proxy_ip_external=$( gcloud compute instances describe $proxy_name --format='get(networkInterfaces[0].accessConfigs[0].natIP)' )
@@ -214,14 +216,12 @@ ssh "$proxy_ip_external" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${
 
 echo "warmuping up"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
-#TODO: remove this timeout later
 #estimate finish = 90*1024/1.2/3600 = 21.333333333333332
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 129600 0 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 
 echo "using remote client"
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
-#TODO: make time out to be max 1 hour
 #estimate finish = 90/2800*400*1024/1.2/3600 = 3.0476190476190474
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 16200 "${real_time}" &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
@@ -235,16 +235,15 @@ scp -3 -o ProxyJump=${proxy_ip_external} "$origin_ip_internal":~/webtracereplay/
 scp -3 -o ProxyJump=${proxy_ip_external} "$client_ip_internal":~/webtracereplay/log/* ~/gcp_log/
 rsync "$proxy_ip_external":~/webtracereplay/log/* ~/gcp_log/
 scp -3 "$proxy_ip_external":/opt/ts/var/log/trafficserver/diag.log ~/gcp_log/
-rsync ~/gcp_log/* fat:~/webcachesim/gcp_log/
 
 echo "deleting vms"
 
 if [[ ${test_bed} = 'gcp' ]]; then
   echo ${suffix} finish
   # enable deleting
-  gcloud compute instances delete --quiet $origin_name
-  gcloud compute instances delete --quiet $client_name
-  gcloud compute instances delete --quiet $proxy_name
+#  gcloud compute instances delete --quiet $origin_name
+#  gcloud compute instances delete --quiet $client_name
+#  gcloud compute instances delete --quiet $proxy_name
 elif [[ ${test_bed} = "pni" ]]; then
   echo ${suffix} finish
 else
