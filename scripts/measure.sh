@@ -23,15 +23,15 @@ fi
 
 n_origin_threads=2048
 #TODO: make sure snapshot id is more recent
-zhenyu_ats_snapshot="zhenyus-v11"
+zhenyu_ats_snapshot="zhenyus-v16"
 
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
 if [[ ${alg} = "wlc" ]]; then
   snapshot_id=$zhenyu_ats_snapshot
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
-    ram_size=27282460672
-    memory_window=671088640
+    ram_size=29429944320
+    memory_window=748938014
 #    memory_window=58720256
   else
     ram_size=31006543872
@@ -126,14 +126,7 @@ if [[ ${test_bed} = 'gcp' ]]; then
 
   #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
   #use single SSD
-#  if [[ ${trace} = "wiki2018_4mb" ]]; then
-#    ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage_4.config ~/webtracereplay/tsconfig_gcp/storage.config"
-#  elif [[ ${trace} = "ntg1_400m_4mb" ]]; then
-  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage.config ~/webtracereplay/tsconfig_gcp/storage.config"
-#  else
-#    echo "error: no trace found"
-#    exit 1
-#  fi
+  ssh "$proxy_ip_external" "cp ~/webtracereplay/tsconfig_backup/storage.config ~/webtracereplay/tsconfig/storage.config"
 
   echo "set proxy SSD permission"
   ssh "$proxy_ip_external" 'sudo apt-get update && sudo apt-get install mdadm --no-install-recommends'

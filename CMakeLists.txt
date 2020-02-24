@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.2.2)
 project(webtracereplay)
 add_subdirectory(trafficserver-8.0.3)
 
-#message(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(client
         client/client.cpp)
