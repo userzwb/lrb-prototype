@@ -18,7 +18,7 @@ Please follow the [instruction](INSTALL.md) to install the origin, client and ca
 ## Request traces
 
 We will need request traces for the client (to request objects) and the origin (to emulate objects).
-We preprocess the trace for you: [download link](http://lrb.cs.princeton.edu/wiki2018.tr.tar.gz). To uncomress:
+We preprocess the trace for you: [download link](http://lrb.cs.princeton.edu/wiki2018_4mb.tar.gz). To uncomress:
 ```shell script
 tar -xzvf wiki2018_4mb.tar.gz
 #move origin trace under origin:~/webtracereplay/
