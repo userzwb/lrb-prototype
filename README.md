@@ -95,7 +95,7 @@ ps.log: log from ps command with pcpu,rss,vsz fields.
 Want to contribute? Great! We follow the [Github contribution work flow](https://help.github.com/articles/github-flow/).
 This means that submissions should fork and use a Github pull requests to get merged into this code base.
 
-If you come across a bug in webcachesim, please file a bug report by [creating a new issue](https://github.com/dasebe/webcachesim/issues/new).
+If you come across a bug in webcachesim, please file a bug report by [creating a new issue](https://github.com/sunnyszy/lrb-prototype/issues/new).
 
 
 ## References
