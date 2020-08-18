@@ -21,8 +21,8 @@ We will need request traces for the client (to request objects) and the origin (
 We preprocess the trace for you: [download link](http://lrb.cs.princeton.edu/wiki2018_4mb.tar.gz). To uncomress:
 ```shell script
 tar -xzvf wiki2018_4mb.tar.gz
-#move origin trace under origin:~/webtracereplay/
-#move client trace under client:~/webtracereplay/
+#move origin trace (wiki2018_4mb_origin.tr) to origin:~/webtracereplay/
+#move client trace (wiki2018_4mb_warmup.tr and wiki2018_4mb_eval.tr) to client:~/webtracereplay/
 ```
 
 ### Trace format 
