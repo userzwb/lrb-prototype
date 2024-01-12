@@ -7,6 +7,7 @@ google-cloud-zone=
 google-cloud-snapshot-id=
 google-cloud-service-account=
 
+# 判断参数数量
 if [[ "$#" = 5 ]]; then
   trace=$1
   alg=$2
@@ -14,6 +15,7 @@ if [[ "$#" = 5 ]]; then
   test_bed=$4
   trail=$5
 elif [[ "$#" = 0 ]]; then
+# 默认参数
   trace=wiki2018_4mb
   alg=LRB
   real_time=0
@@ -27,9 +29,10 @@ fi
 
 
 n_origin_threads=2048
-
+# 将参数整合，用于client、origin和server启动
 suffix=${trace}_${alg}_${real_time}_${test_bed}_${trail}
 
+# 设置缓存大小？32GB，差距可能是在元数据的空间占用上
 if [[ ${alg} = "LRB" ]]; then
   if [[ ${trace} = 'wiki2018_4mb' ]]; then
     ram_size=29429944320
@@ -55,6 +58,7 @@ if [[ ${trace} = 'wiki2018_4mb' ]]; then
   n_warmup_client=180
   n_client=1024
 else
+# 将本地 SSD 的接口类型设置为 NVME（NVME 是一种高性能的存储协议，通常用于固态硬盘。）
   ssd_config="--local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME --local-ssd=interface=NVME"
   cache_size=1099511627776
   n_warmup_client=1024
@@ -63,6 +67,7 @@ fi
 
 
 if [[ ${test_bed} = 'gcp' ]]; then
+# google云上执行的指令，创建三台虚拟机，并获取其ip
   #create client
   client_name=client-${trace:0:1}-${alg}-${real_time}-${trail}
 
@@ -191,6 +196,7 @@ ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal pkill -f client
 trap 'kill_background' EXIT
 
 echo "set client latency"
+# 设置延迟
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal ${test_bed}
 
 
