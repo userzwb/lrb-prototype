@@ -1,3 +1,7 @@
+# 本质上来说，in_ip是局域网ip，外网是无法直接连接到的（类似华为服务器，服务器通过会拥有私有ip和公有ip）
+# 外网无法直接接入google cloude，所以得需要一台服务器有外部ip，再通过外部ip连接到内部ip，最终实现对每个服务器的控制
+# 所以本质上，很多操作都是为了实现对服务器的控制和脚本的运行
+# 自己的服务器因为虚拟机都是能够直接通信的，所以我们并不需要external_ip
 #!/usr/bin/env bash
 # Asssume traffic server is built and installed
 
