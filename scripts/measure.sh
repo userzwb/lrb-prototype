@@ -166,6 +166,7 @@ fi
 
 
 #change config based on trace, alg: hosting.config, records.config, storage.config, volume.config
+# 设置缓存算法和缓存大小
 ssh "$proxy_ip_external" "sed -i 's/^CONFIG proxy.config.cache.ram_cache.size.*/CONFIG proxy.config.cache.ram_cache.size INT "${ram_size}"/g' /opt/ts/etc/trafficserver/records.config"
 if [[ ${alg} = "LRB" ]]; then
 	ssh "$proxy_ip_external" "sed -i 's/^.*CONFIG proxy.config.cache.vdisk_cache.algorithm.*/CONFIG proxy.config.cache.vdisk_cache.algorithm STRING LRB/g' /opt/ts/etc/trafficserver/records.config"
@@ -199,13 +200,14 @@ echo "set client latency"
 # 设置延迟
 ssh -o ProxyJump=${proxy_ip_external} $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal ${test_bed}
 
-
+# 启动origin，并设置输出
 echo "starting origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "pkill -f origin"
 ssh -o ProxyJump=${proxy_ip_external} "$origin_ip_internal" "nohup ~/webtracereplay/scripts/start_origin.sh "${trace}" "${n_origin_threads}" 100 eval "${suffix}" "${home}" &>/tmp/start_origin_"${suffix}".log &"
 # wait enought time for origin to init
 sleep 300
 
+# 启用远程代理
 echo "use remote proxy"
 ssh "$proxy_ip_external" ${home}/scripts/remap_remote.sh $origin_ip_internal
 
