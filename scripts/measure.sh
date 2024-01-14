@@ -151,6 +151,9 @@ elif [[ ${test_bed} = "pni" ]]; then
   proxy_ip_internal=root@192.168.122.238
   client_ip_internal=root@192.168.122.108
   origin_ip_internal=root@192.168.122.154
+  unmodified_proxy_ip_internal=192.168.122.238
+  unmodified_client_ip_internal=192.168.122.108
+  unmodified_origin_ip_internal=192.168.122.154
 
   echo "updating repo"
   ssh "$proxy_ip_internal" "cd ~/webtracereplay/origin && git pull && make"
