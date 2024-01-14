@@ -148,9 +148,9 @@ if [[ ${test_bed} = 'gcp' ]]; then
 
 elif [[ ${test_bed} = "pni" ]]; then
   # proxy_ip_internal=cache_proxy
-  proxy_ip_internal=root@192.168.122.238
-  client_ip_internal=root@192.168.122.108
-  origin_ip_internal=root@192.168.122.154
+  proxy_ip_internal=service@192.168.122.238
+  client_ip_internal=client@192.168.122.108
+  origin_ip_internal=client@192.168.122.154
   unmodified_proxy_ip_internal=192.168.122.238
   unmodified_client_ip_internal=192.168.122.108
   unmodified_origin_ip_internal=192.168.122.154
@@ -207,7 +207,7 @@ trap 'kill_background' EXIT
 
 echo "set client latency"
 # 设置延迟
-ssh $client_ip_internal bash ${home}/scripts/instrument_latency.sh $proxy_ip_internal ${test_bed}
+ssh $client_ip_internal bash ${home}/scripts/instrument_latency.sh $unmodified_proxy_ip_internal ${test_bed}
 
 # 启动origin，并设置输出
 echo "starting origin"
@@ -218,7 +218,7 @@ sleep 300
 
 # 启用远程代理
 echo "use remote proxy"
-ssh "$proxy_ip_internal" ${home}/scripts/remap_remote.sh $origin_ip_internal
+ssh "$proxy_ip_internal" ${home}/scripts/remap_remote.sh $unmodified_origin_ip_internal
 
 #restart
 ssh ${proxy_ip_internal} "pkill -f traffic_server"
@@ -235,13 +235,13 @@ ssh "$proxy_ip_internal" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${
 echo "warmuping up"
 ssh $client_ip_internal pkill -f client
 #estimate finish = 90*1024/1.2/3600 = 21.333333333333332
-ssh $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 129600 0 &>/tmp/start_client_"${suffix}".log"
+ssh $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${unmodified_proxy_ip_internal}" 129600 0 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 
 echo "using remote client"
 ssh $client_ip_internal pkill -f client
 #estimate finish = 90/2800*400*1024/1.2/3600 = 3.0476190476190474
-ssh $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${proxy_ip_internal}" 16200 "${real_time}" &>/tmp/start_client_"${suffix}".log"
+ssh $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" eval "${n_client}" "${unmodified_proxy_ip_internal}" 16200 "${real_time}" &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
 echo "stop measuring segment stat"
 ssh "$proxy_ip_internal" 'pkill -f segment_ps'
