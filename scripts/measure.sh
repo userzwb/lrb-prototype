@@ -148,14 +148,15 @@ if [[ ${test_bed} = 'gcp' ]]; then
 
 elif [[ ${test_bed} = "pni" ]]; then
   # proxy_ip_internal=cache_proxy
-  proxy_ip_internal=192.168.122.238
-  client_ip_internal=192.168.122.108
-  origin_ip_internal=192.168.122.154
+  proxy_ip_internal=root@192.168.122.238
+  client_ip_internal=root@192.168.122.108
+  origin_ip_internal=root@192.168.122.154
 
   echo "updating repo"
   ssh "$proxy_ip_internal" "cd ~/webtracereplay/origin && git pull && make"
   ssh "$proxy_ip_internal" "cd ~/webtracereplay/client && git pull && make"
   ssh $client_ip_internal "cd ~/webtracereplay/client && git pull && make"
+  ssh $origin_ip_internal "cd ~/webtracereplay/origin && git pull && make"
 
   #use single SSD
   ssh "$proxy_ip_internal" "cp ~/webtracereplay/tsconfig_backup/storage_pni.config /opt/ts/etc/trafficserver/storage.config"
@@ -229,7 +230,7 @@ ssh "$proxy_ip_internal" "nohup "${home}"/scripts/segment_ps.sh "${suffix}" "${t
 ssh "$proxy_ip_internal" "nohup "${home}"/scripts/segment_top.sh "${suffix}" "${test_bed}" &>/tmp/segment_top.log &"
 
 echo "warmuping up"
-ssh -o ProxyJump=${proxy_ip_internal} $client_ip_internal pkill -f client
+ssh $client_ip_internal pkill -f client
 #estimate finish = 90*1024/1.2/3600 = 21.333333333333332
 ssh $client_ip_internal "~/webtracereplay/scripts/start_client.sh "${suffix}" "${trace}" warmup "${n_client}" "${proxy_ip_internal}" 129600 0 &>/tmp/start_client_"${suffix}".log"
 sleep 15 # for sync
